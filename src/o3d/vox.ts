@@ -39,7 +39,11 @@ export default class VoxModel extends THREE.Object3D {
                 ...anim,
                 vox: anim.vox.map(file => parser.parse(path.join(dir, file)).then(voxelBin => {
                     const builder = new vox.MeshBuilder(voxelBin, { voxelSize: voxData.size });
-                    return builder.createMesh();
+                    const mesh = builder.createMesh();
+                    console.log(mesh);
+                    mesh.castShadow = true;
+                    mesh.receiveShadow = true;
+                    return mesh;
                 })),
             };
         });

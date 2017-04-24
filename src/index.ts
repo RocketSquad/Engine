@@ -66,7 +66,9 @@ while(x < 10) {
 scene.add(dinostrip);
 scene.add(new Vox(testLevel));
 scene.add(jtree);
-scene.add(new THREE.DirectionalLight());
+const light = new THREE.DirectionalLight();
+light.castShadow = true;
+scene.add(light);
 scene.add(new THREE.AmbientLight());
 
 const direction = 1;
