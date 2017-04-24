@@ -9,7 +9,6 @@ export default class SoundFX {
             src: [path],
             onend: () => {
                 this.playing = false;
-                console.log('finished');
             },
         });
         this.playing = false;
@@ -19,7 +18,6 @@ export default class SoundFX {
         if(!this.playing) {
             this.playing = true;
             this.sfx.play();
-            console.log('play');
         }
     }
 

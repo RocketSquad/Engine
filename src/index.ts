@@ -48,10 +48,8 @@ jtree.position.copy(new THREE.Vector3(-4, 0, -40));
 jtree.generateJTreeSphere(sphereCenter, sphereRadius);
 jtree.spawnCubes();
 
-
 const character = new Vox(charData);
 controls = new CinematicController(camera);
-
 
 const makeDinoMite = () => {
     const o3d = new AI(dinoMite);
