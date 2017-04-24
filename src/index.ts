@@ -38,13 +38,13 @@ const uniforms = {
     color: {value: new THREE.Vector4(0, 1, 0, 1)},
 };
 
-const material = new THREE.MeshPhongMaterial( {color: 0xA0522D} );
+const material = new THREE.MeshPhongMaterial( {color: 0xFFFF00} );
 
-const sphereCenter = new THREE.Vector3(4, 4, 4);
+const sphereCenter = new THREE.Vector3(5, 5, 5);
 const sphereRadius = 4;
 const jtree = new JTreeEntity(material);
 
-jtree.position.copy(new THREE.Vector3(-4, 0, -40));
+jtree.position.copy(new THREE.Vector3(-4, 10, -40));
 jtree.generateJTreeSphere(sphereCenter, sphereRadius);
 jtree.spawnCubes();
 
