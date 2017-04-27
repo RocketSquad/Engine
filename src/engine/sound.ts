@@ -1,6 +1,6 @@
 import {Howl} from 'howler';
 
-export default class SoundFX {
+export default class Sound {
     sfx: Howl;
     playing: boolean;
 

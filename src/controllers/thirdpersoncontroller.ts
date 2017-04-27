@@ -1,6 +1,6 @@
 import * as THREE from 'three';
-import {JoshuaTree} from './lib/joshuatree';
-import {keys, mouse} from './lib/input';
+import {JoshuaTree} from './engine/joshuatree';
+import {keys, mouse} from './engine/input';
 import Vox from './o3d/vox';
 import Weapon from './o3d/weapon';
 

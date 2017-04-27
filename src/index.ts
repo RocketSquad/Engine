@@ -1,99 +1,39 @@
-import JTreeEntity from './JTreeEntity';
-import ThirdPersonController from './thirdpersoncontroller';
-import FlyCharacter from './FlyCharacter';
-import CinematicController from './cinematiccontroller';
 import * as THREE from 'three';
-import Vox from './o3d/vox';
-import {keys, mouse} from './lib/input';
-import * as Howl from 'howler';
-import AI from './o3d/ai';
+import {current} from './o3d/scene';
 
-interface IGameWindow extends Window {
-    scene: THREE.Scene;
-}
-
-declare const window: IGameWindow;
-
-const charData = require('./content/character/character.toml');
-const testLevel = require('./content/testlevel.toml');
-const dinoMite = require('./content/character/dinomite.toml');
-const dinostrip = new Vox(require('./content/character/dinostrip.toml'));
-
-const scene = new THREE.Scene();
-
-window.scene = scene;
-const camera = new THREE.PerspectiveCamera( 75, window.innerWidth/window.innerHeight, 0.1, 1000 );
-
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
 const renderer = new THREE.WebGLRenderer({ antialias: true });
-renderer.setSize( window.innerWidth, window.innerHeight );
-document.body.appendChild( renderer.domElement );
 
-let controls: CinematicController;
-const clock = new THREE.Clock();
+(() => {
+    const throttle = (type: string, name: string, obj?: any) => {
+        obj = obj || window;
+        let running = false;
+        const func = () => {
+            if (running) { return; }
+            running = true;
+            requestAnimationFrame(() => {
+                obj.dispatchEvent(new CustomEvent(name));
+                running = false;
+            });
+        };
+        obj.addEventListener(type, func);
+    };
 
-camera.position.z = 10;
-camera.position.y = 2;
+    /* init - you can init any event */
+    throttle("resize", "optimizedResize");
+})();
 
-const uniforms = {
-    color: {value: new THREE.Vector4(0, 1, 0, 1)},
+const handleResize = () => {
+    renderer.setSize(window.innerWidth, window.innerHeight);
 };
 
-const material = new THREE.MeshPhongMaterial( {color: 0xFFFF00} );
+window.addEventListener("optimizedResize", handleResize);
 
-const sphereCenter = new THREE.Vector3(5, 5, 5);
-const sphereRadius = 4;
-const jtree = new JTreeEntity(material);
-
-jtree.position.copy(new THREE.Vector3(-4, 10, -40));
-jtree.generateJTreeSphere(sphereCenter, sphereRadius);
-jtree.spawnCubes();
-
-const character = new Vox(charData);
-controls = new CinematicController(camera);
-
-const makeDinoMite = () => {
-    const o3d = new AI(dinoMite);
-    o3d.position.set(Math.random() * 2, 0, Math.random() * 2);
-    scene.add(o3d);
-};
-
-let x = 0;
-while(x < 10) {
-    x++;
-    makeDinoMite();
-}
-
-scene.add(dinostrip);
-scene.add(new Vox(testLevel));
-scene.add(jtree);
-const light = new THREE.DirectionalLight();
-light.castShadow = true;
-scene.add(light);
-scene.add(new THREE.AmbientLight());
-
-const direction = 1;
-
-let soundFired = false;
-const sound = new Howl.Howl({
-  src: ['./sfx/sacktap.wav'],
-  onend: () => {
-    soundFired = false;
-  },
-});
-
-const music = new Howl.Howl({
-  src: ['./sfx/Flaming Atoms.mp3'],
-});
-
-music.loop(true);
-music.play();
-
+// Render Loop
 const render = () => {
     requestAnimationFrame(render);
-    const delta = clock.getDelta();
-    controls.tick(delta);
-
-    renderer.render(scene, camera);
+    renderer.render(current, camera);
 };
 
+document.body.appendChild(renderer.domElement);
 render();

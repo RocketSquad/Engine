@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import {keys, mouse} from './lib/input';
+import {keys, mouse} from './engine/input';
 
 export default class FlyCharacter{
     cameraRef: THREE.Camera;

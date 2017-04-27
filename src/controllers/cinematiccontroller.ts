@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import {keys, mouse} from './lib/input';
+import {keys, mouse} from './engine/input';
 import SoundFX from './soundfx';
 
 export default class CinematicController {
