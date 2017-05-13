@@ -389,6 +389,46 @@ var vox = {};
 
 (function() {
 
+    const material = new THREE.ShaderMaterial( {
+        uniforms:       {
+            showOutline: {value: 0 },
+            ambientWeight: { value : .2 },
+            diffuseWeight: { value : .8 },
+            rimWeight: {value : .5 },
+            specularWeight: {  value : .2 },
+            shininess: { value : .2 },
+            invertRim: { value: 0 },
+            inkColor: {  value: new THREE.Vector4(175/255, 175/255, 175/255, 1) },
+            resolution: {  value: new THREE.Vector2( 1920, 1080 ) },
+            bkgResolution: {  value: new THREE.Vector2( 1920, 1080 ) },
+            lightPosition: { value: new THREE.Vector3( -100, 100, 0 ) },
+            repeat: {  value: new THREE.Vector2(1, 1 ) }
+        },
+        vertexShader:   document.getElementById( 'vertexshader' ).textContent,
+        fragmentShader: document.getElementById( 'fragmentshader' ).textContent
+    });
+
+    imgs.then(textures => {
+        const uniforms = this.material.uniforms;
+        uniforms.hatch1 = { value: textures[0] };
+        uniforms.hatch2 = { value: textures[1] };
+        uniforms.hatch3 = { value: textures[2] };
+        uniforms.hatch4 = { value: textures[3] };
+        uniforms.hatch5 = { value: textures[4] };
+        uniforms.hatch6 = { value: textures[5] };
+        uniforms.paper = { value: textures[6] };
+        material.uniforms.paper.value.generateMipmaps = false;
+        material.uniforms.paper.value.magFilter = THREE.LinearFilter;
+        material.uniforms.paper.value.minFilter = THREE.LinearFilter;
+
+        material.uniforms.hatch1.value.wrapS = material.uniforms.hatch1.value.wrapT = THREE.RepeatWrapping;
+        material.uniforms.hatch2.value.wrapS = material.uniforms.hatch2.value.wrapT = THREE.RepeatWrapping;
+        material.uniforms.hatch3.value.wrapS = material.uniforms.hatch3.value.wrapT = THREE.RepeatWrapping;
+        material.uniforms.hatch4.value.wrapS = material.uniforms.hatch4.value.wrapT = THREE.RepeatWrapping;
+        material.uniforms.hatch5.value.wrapS = material.uniforms.hatch5.value.wrapT = THREE.RepeatWrapping;
+        material.uniforms.hatch6.value.wrapS = material.uniforms.hatch6.value.wrapT = THREE.RepeatWrapping;
+    });
+    
     /**
      * @constructor
      *
@@ -428,8 +468,10 @@ var vox = {};
      * Voxelデータからジオメトリとマテリアルを作成する.
      */
     vox.MeshBuilder.prototype.build = function() {
+        
+        var id = 'img/hatch_';
         this.geometry = new THREE.Geometry();
-        this.material = new THREE.MeshPhongMaterial();
+        this.material = material;
 
         // 隣接ボクセル検索用ハッシュテーブル
         this.hashTable = createHashTable(this.voxelData.voxels);
@@ -450,12 +492,13 @@ var vox = {};
             this.geometry.mergeVertices();
         }
         this.geometry.computeFaceNormals();
-        
+        //this.material.map = vox.MeshBuilder.textureFactory.getTexture(this.voxelData);
+        /*
         if (this.vertexColor) {
             this.material.vertexColors = THREE.FaceColors;
         } else {
-            this.material.map = vox.MeshBuilder.textureFactory.getTexture(this.voxelData);
-        }
+            
+        }*/
     };
 
     /**
@@ -547,11 +590,22 @@ var vox = {};
         return vox;
     };
 
+    var loader = new THREE.TextureLoader();
+    
+    const loadImg = (img) => {
+        return new Promise(res => loader.load(img, res));
+    };
+
+    const files = ['img/hatch_0.jpg', 'img/hatch_1.jpg', 'img/hatch_2.jpg', 'img/hatch_3.jpg', 'img/hatch_4.jpg', 'img/hatch_5.jpg', 'img/paper.jpg']
+    const imgs = Promise.all(files.map(loadImg));
+
     /**
      * @return {THREE.Mesh}
      */
-    vox.MeshBuilder.prototype.createMesh = function() {
-        return new THREE.Mesh(this.geometry, this.material);
+    vox.MeshBuilder.prototype.createMesh = function() { 
+        const bufferGeom = new THREE.BufferGeometry();
+        bufferGeom.fromGeometry(this.geometry);
+        return new THREE.Mesh(bufferGeom, this.material);
     };
     
     /**

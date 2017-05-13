@@ -1,11 +1,28 @@
+const KeyLookUp = {
+    13: 'enter',
+    8: 'backspace',
+    9: 'tab',
+    17: 'ctrl',
+    18: 'alt',
+    37: 'left',
+    38: 'up',
+    39: 'right',
+    40: 'down',
+    32: 'space'
+};
+
 document.addEventListener('keyup', (e) => {
+    const lookUp = KeyLookUp[e.keyCode];
+
     keys[e.keyCode] = false;
-    keys[e.key] = false;
+    keys[lookUp || e.key] = false;
 });
 
 document.addEventListener('keydown', (e) => {
+    const lookUp = KeyLookUp[e.keyCode];
+
     keys[e.keyCode] = true;
-    keys[e.key] = true;
+    keys[lookUp || e.key] = true;
 });
 
 document.addEventListener('mousemove', e => {

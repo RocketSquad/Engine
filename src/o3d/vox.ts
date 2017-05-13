@@ -16,6 +16,7 @@ export interface IVoxData {
     rotation?: number[];
     position?: number[];
     default: string;
+    tesselation?: number;
 }
 
 export default class VoxModel extends THREE.Object3D {
@@ -28,17 +29,24 @@ export default class VoxModel extends THREE.Object3D {
 
     constructor(voxData: IVoxData) {
         super();
+
         this.data = voxData;
         const dir = './vox';
         this.animations = {};
-
+        const tesselation = voxData.tesselation ? voxData.tesselation : 0;
+        
         Object.keys(this.data.animation).forEach(key => {
             const anim: IAnimation = this.data.animation[key];
 
             this.animations[key] = {
                 ...anim,
                 vox: anim.vox.map(file => parser.parse(path.join(dir, file)).then(voxelBin => {
-                    const builder = new vox.MeshBuilder(voxelBin, { voxelSize: voxData.size });
+                    const builder = new vox.MeshBuilder(voxelBin, { 
+                        voxelSize: voxData.size, 
+                        vertexColor: true, 
+                        optimizeFaces: false,
+                        tesselation
+                    });
                     const mesh = builder.createMesh();
                     mesh.castShadow = true;
                     mesh.receiveShadow = true;

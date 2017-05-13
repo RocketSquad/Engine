@@ -1,0 +1,9 @@
+default = "idle"
+size = 0.20
+tesselation = 0.4
+
+[animation.idle]
+    speed = 1000
+    vox = [
+        "tiles/water-top.vox"
+    ]
