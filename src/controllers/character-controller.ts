@@ -22,6 +22,7 @@ export default class CharacterController {
     target: Vox;
     clock: THREE.Clock;
     health = data.initialHealth;
+    dead = false;
 
     constructor(target: Vox) {
         this.target = target;
@@ -46,9 +47,16 @@ export default class CharacterController {
         if (keys.x) up = 1;
         if (keys.c) up = -1;
 
-        this.health += data.healthRegen * delta; //regen 1 health per tick
-        if (this.health > data.initialHealth) {
-            this.health = data.initialHealth;
+        const alive = !this.dead; //aka not dead
+        if (alive) {
+            this.health += data.healthRegen * delta; //regen 1 health per tick
+            if (this.health > data.initialHealth) {
+                this.health = data.initialHealth;
+            }
+        }
+        if (this.dead) {
+            forward = 0;
+            turn = 0;
         }
 
         this.target.rotateY(turn * delta * data.turnSpeed);
@@ -80,9 +88,13 @@ export default class CharacterController {
         if (keys.w) {
             const dmgTaken = 20
             this.health -= dmgTaken * delta;
-            if(this.health < 0) {
+            if (this.health < 0) {
+                this.killThePlayer();
                 this.health = 0;
             }
         }
+    }
+    killThePlayer() {
+        this.dead = true;
     }
 }
