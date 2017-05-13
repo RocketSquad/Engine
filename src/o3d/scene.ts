@@ -1,7 +1,9 @@
 import * as THREE from 'three';
 import Vox, {IVoxData} from './vox';
 import CharacterController from '../controllers/character-controller';
+import Entity from '../entity';
 import * as uuid from 'uuid';
+import {SystemManagerInst} from '../systemManager';
 
 interface IInstanceData extends IVoxData {
     file: 'character';
@@ -71,6 +73,20 @@ export default class Scene extends THREE.Scene {
     grassMap: any;
     waterMap: any;
 
+    add(object: THREE.Object3D) {
+        if(object instanceof Entity) {
+            SystemManagerInst.addEntity(object);
+        } 
+        super.add(object);
+    }
+
+    remove(object: THREE.Object3D) {
+        if(object instanceof Entity) {
+            SystemManagerInst.removeEntity(object);
+        } 
+        super.remove(object);
+    }
+
     constructor(sceneData: ISceneData = { vox: [] }) {
         super();
         sceneData.vox = sceneData.vox || [];
@@ -83,6 +99,9 @@ export default class Scene extends THREE.Scene {
         light.position.set(0, 5, 5);
         this.add(light);
 
+        const ent = new Entity({vox: voxDataFiles[RandomTribe()]});
+        this.add(ent);
+        
         this.player = new Vox(voxDataFiles[RandomTribe()]);
         const controller = new CharacterController(this.player);
         // player data

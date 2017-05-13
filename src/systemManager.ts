@@ -1,5 +1,6 @@
 import Entity from "./entity";
 import {SystemConstructorList} from "./systems";
+const uuid = require('uuid');
 
 export interface ISystem {
     add(entity: Entity);
@@ -12,7 +13,9 @@ export class SystemManager {
     systems: ISystem[];
 
     constructor() {
+        this.systems = [];
         for(let sysType in SystemConstructorList) {
+            console.log(sysType);
             this.systems.push(SystemConstructorList[sysType]());
         }
     }

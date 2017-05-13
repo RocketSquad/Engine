@@ -15,12 +15,12 @@ export default class PlayerControllerSystem implements ISystem {
 
     add(entity: Entity) {
         if(entity.state['voxModel'] !== undefined) {
-            this.relativeEntities[entity.entityId] = entity;
+            this.relativeEntities[entity.id] = entity;
         }
     }
 
     remove(entity: Entity) {
-        this.relativeEntities[entity.entityId] = undefined;
+        this.relativeEntities[entity.id] = undefined;
     }
 
     getControllerInput() {
@@ -29,7 +29,7 @@ export default class PlayerControllerSystem implements ISystem {
 
     update(dt: number) {
         this.relativeEntities.forEach(entity => {
-            return;// buuttttssss
+            return;
         });
     }
 }

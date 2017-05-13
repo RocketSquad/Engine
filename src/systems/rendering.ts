@@ -1,6 +1,8 @@
 import {ISystem} from '../systemManager';
 import Entity from '../entity';
-import VoxModel from '../o3d/vox';
+import Vox from '../o3d/vox';
+import {current} from '../o3d/scene';
+import * as THREE from 'three';
 
 interface IAnimationData {
      label: string;
@@ -16,7 +18,7 @@ interface IModelData {
 }
 
 export default class RenderingSystem implements ISystem {
-    vox: {[entityId: number]: VoxModel};
+    vox: {[entityId: number]: Vox};
     relativeEntities: {[entityId: number]: Entity};
 
     constructor() {
@@ -25,20 +27,19 @@ export default class RenderingSystem implements ISystem {
     }
 
     add(entity: Entity) {
-        if(entity.state['voxModel'] !== undefined) {
-            this.vox[entity.entityId] = new VoxModel(entity.state['voxModel']);
-            this.relativeEntities[entity.entityId] = entity;
+        if(entity.state['vox'] !== undefined) {
+            this.vox[entity.id] = new Vox(entity.state['vox']);
+            this.relativeEntities[entity.id] = entity;
+            entity.position.copy(new THREE.Vector3(0, 5, 5));
+            current.add(this.vox[entity.id]);
         }
     }
 
     remove(entity: Entity) {
-        this.vox[entity.entityId] = undefined;
-        this.relativeEntities[entity.entityId] = undefined;
+        this.vox[entity.id] = undefined;
+        this.relativeEntities[entity.id] = undefined;
     }
 
     update(dt: number) {
-        for(let prop in this.vox){
-            console.log('asdeergf');
-        };
     }
 }
