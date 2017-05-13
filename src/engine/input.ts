@@ -1,3 +1,4 @@
+
 const KeyLookUp = {
     13: 'enter',
     8: 'backspace',
@@ -10,6 +11,12 @@ const KeyLookUp = {
     40: 'down',
     32: 'space'
 };
+
+window.addEventListener('blur', (e) => {
+    Object.keys(keys).forEach( (k) => {
+         keys[k] = false;
+     });
+});
 
 document.addEventListener('keyup', (e) => {
     const lookUp = KeyLookUp[e.keyCode];
