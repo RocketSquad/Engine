@@ -1,19 +1,24 @@
 import * as THREE from 'three';
+import * as uuid from 'uuid';
 
-interface IEntityData {
-    stuff: any; // [TODO] fill out with real entity properties
+interface ITransformData {
+    position: number[]
+} 
+
+interface IVoxData {
+    file: string;
 }
 
-let currentEntityId = 0;
+interface IEntityData {
+    transform?: ITransformData;
+    vox?: IVoxData;
+}
 
 export default class Entity extends THREE.Object3D {
-    entityId: number;
     state: {[key: string]: any};
     
     constructor(data: IEntityData) {
         super();
         this.state = data;
-        this.entityId = currentEntityId;
-        ++currentEntityId;
     }
 }

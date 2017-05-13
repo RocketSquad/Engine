@@ -18,6 +18,12 @@ interface IPhysicsData {
 
 export default class PhysicsSystem implements ISystem {
 
+    
+
+    constructor() {
+
+    }
+
     add(entity: Entity) {
 
     }
