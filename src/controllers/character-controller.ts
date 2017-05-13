@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import {keys} from '../engine/input';
+import { keys } from '../engine/input';
 import Vox from '../o3d/vox';
 
 interface IControllerData {
@@ -8,6 +8,8 @@ interface IControllerData {
     cameraOffset: number[];
     cameraLookAt: number[];
     cameraLerp: number;
+    healthRegen: number;
+    initialHealth: number;
 }
 
 interface IWindowGame extends Window {
@@ -19,6 +21,7 @@ const data: IControllerData = require('../content/controller/character.toml');
 export default class CharacterController {
     target: Vox;
     clock: THREE.Clock;
+    health = data.initialHealth;
 
     constructor(target: Vox) {
         this.target = target;
@@ -35,27 +38,32 @@ export default class CharacterController {
         let up = 0;
 
         requestAnimationFrame(this.tick);
-        
-        if(keys.w) forward = 1;
-        if(keys.s) forward = -1;
-        if(keys.d) turn = -1;
-        if(keys.a) turn = 1;
-        if(keys.x) up = 1;
-        if(keys.c) up = -1;
+
+        if (keys.w) forward = 1;
+        if (keys.s) forward = -1;
+        if (keys.d) turn = -1;
+        if (keys.a) turn = 1;
+        if (keys.x) up = 1;
+        if (keys.c) up = -1;
+
+        this.health += data.healthRegen * delta; //regen 1 health per tick
+        if (this.health > data.initialHealth) {
+            this.health = data.initialHealth;
+        }
 
         this.target.rotateY(turn * delta * data.turnSpeed);
         this.target.translateZ(forward * delta * data.forwardSpeed);
         this.target.translateY(up * delta * data.forwardSpeed);
-        
+
         const walking = forward !== 0 || turn !== 0;
 
-        if(walking && this.target.current !== 'walk') {
+        if (walking && this.target.current !== 'walk') {
             this.target.play('walk');
-        } else if(!walking && this.target.current !== 'idle') {
+        } else if (!walking && this.target.current !== 'idle') {
             this.target.play('idle');
         }
 
-        if((<IWindowGame>window).camera) {
+        if ((<IWindowGame>window).camera) {
             const cam = (<IWindowGame>window).camera;
             const axis = new THREE.Vector3().fromArray(data.cameraLookAt);
             //axis.applyQuaternion(this.target.quaternion);
@@ -66,5 +74,15 @@ export default class CharacterController {
             cam.position.lerp(camPosition, data.cameraLerp);
             cam.lookAt(dstPosition);
         }
-    }   
+
+        console.log(this.health);
+
+        if (keys.w) {
+            const dmgTaken = 20
+            this.health -= dmgTaken * delta;
+            if(this.health < 0) {
+                this.health = 0;
+            }
+        }
+    }
 }
