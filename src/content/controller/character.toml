@@ -3,3 +3,8 @@ forwardSpeed = 3
 cameraOffset = [0, 8, 5]
 cameraLookAt = [0, 0, 1]
 cameraLerp = 1
+healthRegen = 5
+initialHealth = 100
+
+[camera]
+    offset = [0, 8, 5]
