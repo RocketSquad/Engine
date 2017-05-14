@@ -1,6 +1,7 @@
 import { ISystem } from '../systemManager';
 import Entity from '../entity';
 import * as THREE from "three";
+import { IHudWindow } from "../interface";
 
 export interface IStatsData {
     health: number;
@@ -57,6 +58,11 @@ export default class StatsSystem implements ISystem {
     update(dt: number) {
         this.relativeEntities.forEach((e) => {
             const stats = e.userData as IStatsData;
+
+            // HACK / TODO - move this
+            let hwnd = window as IHudWindow;
+            hwnd.hud.health = stats.stamina;
+            
 
             // console.log(stats.health);
             const alive = !stats.dead; // aka not dead

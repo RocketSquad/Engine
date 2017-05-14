@@ -1,0 +1,9 @@
+default = "idle"
+size = 0.1
+jitter = 0.3
+
+[animation.idle]
+    speed = 1000
+    vox = [
+        "fallback/stripper_pole.vox"
+    ]
