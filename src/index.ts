@@ -42,7 +42,12 @@ window.addEventListener("optimizedResize", handleResize);
 // Render Loop
 const render = () => {
     requestAnimationFrame(render);
+
+    //var startTime = Date.now();
     renderer.render(current, camera);
+    //var elapsedTime = Date.now() - startTime;
+    //document.getElementById("timer").innerHTML = (elapsedTime / 1000).toFixed(3);
+
 };
 
 document.body.appendChild(renderer.domElement);
