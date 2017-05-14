@@ -49,3 +49,4 @@ hwnd.hud.health = 7;
 hwnd.hud.ammo = 50;
 hwnd.hud.clipSize = 100;
 hwnd.hud.logObj = ["abc", "def"];
+hwnd.hud.ba_dings = 0;
