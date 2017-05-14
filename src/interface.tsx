@@ -1,6 +1,8 @@
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
 
+// http://media.tojicode.com/webgl-samples/hud-test.html
+
 class Hud {
   health: number;
   ammo: number;
