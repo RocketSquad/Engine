@@ -99,10 +99,13 @@ export default class Scene extends THREE.Scene {
         light.position.set(0, 5, 5);
         this.add(light);
 
+
         const ent = new Entity({
             vox: voxDataFiles[RandomTribe()],
             controller: {moveSpeed: 10, isLocalPlayer: true},
         });
+
+        Object.assign(ent, require('../content/character/character.toml'));
         this.add(ent);
         
         // this.player = new Vox(voxDataFiles[RandomTribe()]);
