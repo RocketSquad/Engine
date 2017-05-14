@@ -109,7 +109,10 @@ export default class Scene extends THREE.Scene {
         (async () => {
             const ent = new Entity( {
                 vox: DataFiles[RandomTribe()],
-                controller: {moveSpeed: 10},
+                controller: {
+                    moveSpeed: 10,
+                    rotSpeed: 360,
+                },
             });
 
             Object.assign(ent.userData, await Get('/content/controller/character.toml'));

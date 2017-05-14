@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import VoxModel from '../o3d/vox';
 import { keys } from '../engine/input';
 import StatsSystem, { IStatsData } from './stats';
+import RMath from '../engine/math';
 
 interface IWindowGame extends Window {
     camera: THREE.Camera;
@@ -36,6 +37,8 @@ export default class PlayerControllerSystem implements ISystem {
             this.relativeEntities[entity.id] = entity;
             this.target = entity;
             entity.userData.controller.isLocalPlayer = false;
+            entity.userData.controller.minInputLength = 0.3;
+            entity.userData.controller.minRotAngle = 0.1;
         }
     }
 
@@ -79,6 +82,7 @@ export default class PlayerControllerSystem implements ISystem {
         const delta = this.clock.getDelta();
 
         this.relativeEntities.forEach(entity => {
+            const controller = entity.userData.controller;
             let input = this.getControllerInput();
 
             if (keys.w || keys.s || keys.d || keys.a) {
@@ -88,12 +92,42 @@ export default class PlayerControllerSystem implements ISystem {
 
             let direction = this.getControllerDirection();
             const stats = entity.userData as IStatsData;
+
             if (stats.dead) {
                 direction = new THREE.Vector3(0, 0, 0);
                 input = new THREE.Vector3(0, 0, 0);
             }
+
             entity.position.add(input.multiplyScalar(entity.userData.controller.moveSpeed * dt));
-            entity.rotation.copy(new THREE.Euler(0, Math.atan2(direction.x, direction.z), 0));
+
+            // Use input for direction if no direction is given
+            if(direction.lengthSq() <= controller.minInputLength * controller.minInputLength) {
+                direction = input;
+            }
+
+            // Calculate and handle rotation
+            if(direction.lengthSq() > controller.minInputLength * controller.minInputLength) {
+                const targetRotationAngle = new THREE.Euler(0, Math.atan2(direction.x, direction.z), 0);
+                const currentRotationAngle = new THREE.Euler().copy(entity.rotation);
+
+                let deltaAngle = RMath.SmallestAngleBetweenAngles(targetRotationAngle.y, currentRotationAngle.y);
+                deltaAngle *= RMath.radToDegree;
+
+                let rotDir;
+                if(Math.abs(deltaAngle) > controller.minRotAngle) {
+                    rotDir = deltaAngle / Math.abs(deltaAngle);
+                } else {
+                    rotDir = 0;
+                }
+
+                const currentRot = currentRotationAngle.y * RMath.radToDegree;
+                const nextDeltaRot = rotDir * Math.min(dt * controller.rotSpeed, Math.abs(deltaAngle));
+                const nextAngle = ((currentRot + nextDeltaRot) % 360 + 360) % 360;
+
+                currentRotationAngle.y = Math.min(nextAngle * RMath.degreeToRad);
+
+                entity.rotation.copy(currentRotationAngle);
+            }
         });
 
         if ((window as IWindowGame).camera && this.target) {
