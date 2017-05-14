@@ -1,5 +1,5 @@
 turnSpeed = 4
-forwardSpeed = 3
+forwardSpeed = 0
 cameraOffset = [0, 8, 5]
 cameraLookAt = [0, 0, 1]
 cameraLerp = 1

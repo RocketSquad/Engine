@@ -187,7 +187,7 @@ export default class Scene extends THREE.Scene {
             // }
         };
 
-        this.createTiles();
+        // this.createTiles();
 
         this.tick = this.tick.bind(this);
         this.tick();
