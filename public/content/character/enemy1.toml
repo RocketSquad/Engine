@@ -1,0 +1,28 @@
+default = "idle"
+size = 0.1
+jitter = 0.3
+
+[animation.idle]
+    speed = 1000
+    vox = [
+        "characters/enemy1.vox"
+    ]
+
+# [animation.walk]    
+#     speed = 100
+#     vox = [
+#         "characters/player/chr_walkcycle-00.vox",
+#         "characters/player/chr_walkcycle-01.vox",
+#         "characters/player/chr_walkcycle-02.vox",
+#         "characters/player/chr_walkcycle-03.vox",
+#         "characters/player/chr_walkcycle-04.vox",
+#         "characters/player/chr_walkcycle-05.vox"
+#     ]
+[animation.walk]    
+    speed = 100
+    vox = [
+        "characters/enemy1.vox",
+        "characters/enemy1.vox",
+        "characters/enemy1.vox",
+        "characters/enemy1.vox"
+    ]
