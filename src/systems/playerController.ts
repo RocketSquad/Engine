@@ -183,7 +183,7 @@ export default class PlayerControllerSystem implements ISystem {
             this.cooldown--;
             if(this.cooldown < 1) {
                 SayIt(phrases[Math.round(Math.random() * (phrases.length -1))]);
-                this.cooldown = Math.floor(Math.random() * 10);
+                this.cooldown = 5 + Math.floor(Math.random() * 10);
             }
             const pitchShift = 4; // 4 percent random rate/pitch modulation
             sound.rate(Math.random() * pitchShift / 100 + 1.0 - (pitchShift/100/2));
