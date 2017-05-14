@@ -2,7 +2,7 @@ import { ISystem, SystemManagerInst } from '../systemManager';
 import Entity, { IControllerData } from '../entity';
 import * as THREE from 'three';
 import VoxModel from '../o3d/vox';
-import { keys } from '../engine/input';
+import { keys, gamepads } from '../engine/input';
 import StatsSystem, { IStatsData } from './stats';
 import RMath from '../engine/math';
 
@@ -63,6 +63,16 @@ export default class PlayerControllerSystem implements ISystem {
         if (keys.x) up = 1;
         if (keys.c) up = -1;
 
+        const gp = navigator.getGamepads()[0];
+        console.log(JSON.stringify(gp));
+
+        if(gp) {
+            forward = -gp.axes[1];
+            if(Math.abs(forward) < 0.1) forward = 0;
+            turn = gp.axes[0];
+            if(Math.abs(turn) < 0.1) turn = 0;
+        }
+
         return new THREE.Vector3(turn, up, -forward);
     }
 
@@ -74,6 +84,13 @@ export default class PlayerControllerSystem implements ISystem {
         if (keys[40]) forward = -1;
         if (keys[37]) turn = -1;
         if (keys[39]) turn = 1;
+
+        const gp = navigator.getGamepads()[0];
+
+        if(gp) {
+            forward = -gp.axes[3];
+            turn = gp.axes[2];
+        }
 
         return new THREE.Vector3(turn, 0, -forward);
     }

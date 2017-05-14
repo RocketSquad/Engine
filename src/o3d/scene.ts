@@ -110,8 +110,8 @@ export default class Scene extends THREE.Scene {
             const ent = new Entity( {
                 vox: DataFiles[RandomTribe()],
                 controller: {
-                    moveSpeed: 10,
-                    rotSpeed: 360,
+                    moveSpeed: 5,
+                    rotSpeed: 420,
                 },
             });
 
