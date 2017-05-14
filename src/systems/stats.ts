@@ -38,11 +38,10 @@ export default class StatsSystem implements ISystem {
     update(dt: number) {
         console.log("update");
         this.relativeEntities.forEach((e) => {
-            const stats = e.state as IStatsData;
+            const stats = e.userData as IStatsData;
             console.log(stats.health);
             const alive = !stats.dead; //aka not dead
             if (alive) {
-
                 stats.health += stats.healthRegen * dt;
                 stats.stamina += stats.staminaRegen * dt;
                 stats.health = THREE.Math.clamp(stats.health, 0, stats.maxHealth);
