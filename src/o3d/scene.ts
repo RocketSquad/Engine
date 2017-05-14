@@ -2,7 +2,9 @@ import * as THREE from 'three';
 import Vox, { IVoxData } from './vox';
 import { Gets, Get } from '../engine/assets';
 import CharacterController from '../controllers/character-controller';
+import Entity from '../entity';
 import * as uuid from 'uuid';
+import {SystemManagerInst} from '../systemManager';
 
 interface IInstanceData extends IVoxData {
     file: 'character';
@@ -77,6 +79,20 @@ export default class Scene extends THREE.Scene {
         this.setupScene(scenePromise);
     }
 
+    add(object: THREE.Object3D) {
+        if(object instanceof Entity) {
+            SystemManagerInst.addEntity(object);
+        }
+        super.add(object);
+    }
+
+    remove(object: THREE.Object3D) {
+        if(object instanceof Entity) {
+            SystemManagerInst.removeEntity(object);
+        }
+        super.remove(object);
+    }
+
     async setupScene(scenePromise: Promise<ISceneData>) {
         const sceneData = await scenePromise;
         sceneData.vox = sceneData.vox || [];
@@ -89,10 +105,15 @@ export default class Scene extends THREE.Scene {
         light.position.set(0, 5, 5);
         this.add(light);
 
-        this.player = new Vox(DataFiles.character);
-        const controller = new CharacterController(this.player);
-        // player data
-        this.add(this.player);
+        (async () => {
+            const ent = new Entity({
+                vox: DataFiles[RandomTribe()],
+                controller: {moveSpeed: 10},
+            });
+
+            Object.assign(ent, await Get('/content/character/character.toml'));
+            this.add(ent);
+        }) ();
 
         sceneData.vox.forEach(async voxData => {
             let data = {};
@@ -201,6 +222,8 @@ export default class Scene extends THREE.Scene {
     tick() {
         requestAnimationFrame(this.tick);
         const time = Date.now();
+
+        SystemManagerInst.update(0.016);
 
         Object.keys(this.waterMap).forEach(xkey => {
             Object.keys(this.waterMap[xkey]).forEach(ykey => {

@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import {keys} from '../engine/input';
+import { keys } from '../engine/input';
 import Vox from '../o3d/vox';
 import {Get} from '../engine/assets';
 
@@ -43,12 +43,12 @@ export default class CharacterController {
 
         requestAnimationFrame(this.tick);
 
-        if(keys.w) forward = 1;
-        if(keys.s) forward = -1;
-        if(keys.d) turn = -1;
-        if(keys.a) turn = 1;
-        if(keys.x) up = 1;
-        if(keys.c) up = -1;
+        if (keys.w) forward = 1;
+        if (keys.s) forward = -1;
+        if (keys.d) turn = -1;
+        if (keys.a) turn = 1;
+        if (keys.x) up = 1;
+        if (keys.c) up = -1;
 
         this.target.rotateY(turn * delta * data.turnSpeed);
         this.target.translateZ(forward * delta * data.forwardSpeed);
@@ -56,9 +56,9 @@ export default class CharacterController {
 
         const walking = forward !== 0 || turn !== 0;
 
-        if(walking && this.target.current !== 'walk') {
+        if (walking && this.target.current !== 'walk') {
             this.target.play('walk');
-        } else if(!walking && this.target.current !== 'idle') {
+        } else if (!walking && this.target.current !== 'idle') {
             this.target.play('idle');
         }
 
@@ -73,5 +73,6 @@ export default class CharacterController {
             cam.position.lerp(camPosition, data.cameraLerp);
             cam.lookAt(dstPosition);
         }
+
     }
 }

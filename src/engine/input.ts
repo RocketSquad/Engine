@@ -1,3 +1,4 @@
+
 const KeyLookUp = {
     13: 'enter',
     8: 'backspace',
@@ -11,18 +12,24 @@ const KeyLookUp = {
     32: 'space'
 };
 
+window.addEventListener('blur', (e) => {
+    Object.keys(keys).forEach( (k) => {
+         keys[k] = false;
+     });
+});
+
 document.addEventListener('keyup', (e) => {
     const lookUp = KeyLookUp[e.keyCode];
 
     keys[e.keyCode] = false;
-    keys[lookUp || e.key] = false;
+    keys[lookUp || e.key.toLowerCase()] = false;
 });
 
 document.addEventListener('keydown', (e) => {
     const lookUp = KeyLookUp[e.keyCode];
 
     keys[e.keyCode] = true;
-    keys[lookUp || e.key] = true;
+    keys[lookUp || e.key.toLowerCase()] = true;
 });
 
 document.addEventListener('mousemove', e => {

@@ -40,14 +40,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/JoshGalvin/LD38.git"
+    "url": "git+https://github.com/RocketSquad/Engine"
   },
   "author": "",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/JoshGalvin/LD38/issues"
+    "url": "https://github.com/RocketSquad/Engine/issues"
   },
-  "homepage": "https://github.com/JoshGalvin/LD38#readme",
+  "homepage": "https://github.com/RocketSquad/Engine#readme",
   "optionalDependencies": {
     "bufferutil": "^3.0.0"
   }
