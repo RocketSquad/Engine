@@ -106,6 +106,7 @@ export default class Scene extends THREE.Scene {
         });
 
         Object.assign(ent, require('../content/character/character.toml'));
+        SystemManagerInst.getSystemByName("PlayerControllerSystem").setEntityAsLocalPlayer(ent);
         this.add(ent);
         
         // this.player = new Vox(voxDataFiles[RandomTribe()]);
@@ -121,7 +122,7 @@ export default class Scene extends THREE.Scene {
 
             Object.assign(data, voxData);
 
-            this.add(new Vox(<IVoxData>data)); 
+            this.add(new Vox(<IVoxData>data));
         });
 
         const handlePlayer = (playerUpdate: IPlayerUpdate) => {

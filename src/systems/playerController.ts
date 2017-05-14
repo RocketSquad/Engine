@@ -34,7 +34,7 @@ export default class PlayerControllerSystem implements ISystem {
         if(entity.userData.controller !== undefined) {
             this.relativeEntities[entity.id] = entity;
             this.target = entity;
-            entity.userData.controller.isLocalPlayer;
+            entity.userData.controller.isLocalPlayer = false;
         }
     }
 
@@ -43,14 +43,15 @@ export default class PlayerControllerSystem implements ISystem {
     }
 
     setEntityAsLocalPlayer(entity: Entity) {
-        
+        this.target = entity;
+        entity.userData.controller.isLocalPlayer = true;
     }
 
     getControllerInput(): THREE.Vector3 {
         let forward = 0;
         let turn = 0;
         let up = 0;
-        
+
         if (keys.w) forward = 1;
         if (keys.s) forward = -1;
         if (keys.d) turn = 1;
@@ -65,7 +66,7 @@ export default class PlayerControllerSystem implements ISystem {
         let forward = 0;
         let turn = 0;
         let up = 0;
-        
+
         if (keys.w) forward = 1;
         if (keys.s) forward = -1;
         if (keys.d) turn = 1;

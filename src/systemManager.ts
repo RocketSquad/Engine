@@ -20,7 +20,7 @@ export class SystemManager {
         }
     }
 
-    getSystemByName(sysType: string) {
+    getSystemByName(sysType: string): any {
         return this.systems[sysType];
     }
 
