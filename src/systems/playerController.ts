@@ -6,6 +6,7 @@ import { keys, gamepads } from '../engine/input';
 import StatsSystem, { IStatsData } from './stats';
 import RMath from '../engine/math';
 import * as Howl from 'howler';
+import { IHudWindow } from "../interface";
 
 interface IWindowGame extends Window {
     camera: THREE.Camera;
@@ -171,6 +172,8 @@ export default class PlayerControllerSystem implements ISystem {
             sound.play();
             //console.log('ding!');
             soundFired = true;
+            let hwnd = window as IHudWindow;
+            hwnd.hud.ba_dings++;
         }
     }
 }
