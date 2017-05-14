@@ -105,8 +105,8 @@ export default class Scene extends THREE.Scene {
         this.uuid = uuid.v4();
         this.players = {};
 
-        this.add(new THREE.AmbientLight(0xFFFFFF, 0.55));
-        const light = new THREE.DirectionalLight(0xFFFFFF, 0.5);
+        this.add(new THREE.AmbientLight(0xFF9999, 0.55));
+        const light = new THREE.DirectionalLight(0xFF9999, 0.5);
         light.position.set(0, 5, 5);
         this.add(light);
 
