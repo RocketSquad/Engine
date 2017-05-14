@@ -28,7 +28,12 @@ export default class StatsSystem implements ISystem {
 
     remove(entity: Entity) {
         this.relativeEntities[entity.id] = undefined;
-        const stats = entity.userData as IStatsData;
+    }
+
+    clamp(current: number, min: number, max: number): number {
+        current = Math.min(current, max);
+        current = Math.max(current, min);
+        return current;
     }
 
     dealDamage(entity: Entity, damage: number, dt: number) {
@@ -43,6 +48,7 @@ export default class StatsSystem implements ISystem {
     update(dt: number) {
         this.relativeEntities.forEach((e) => {
             const stats = e.userData as IStatsData;
+
             // console.log(stats.health);
             const alive = !stats.dead; // aka not dead
             if (alive) {

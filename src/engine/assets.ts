@@ -10,6 +10,10 @@ const postProcess = {
     toml: (data: Response) => data.text().then(toml.parse)
 };
 
+export const When = (file: string, callback: (data: any) => void) => {
+    
+};
+
 export const Get = (file: string) => Memoize(file, () => {
     return fetch(file).then((dataResponse) => {
         let processing = Promise.resolve(dataResponse);
