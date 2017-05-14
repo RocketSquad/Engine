@@ -15,7 +15,7 @@ html, body {
 }
 #health, #ammo, #log {
     position: absolute;
-    border: 3px solid #FFF;
+    border: 2px solid #FFF;
     border-radius: 5px;
     color: #FFF;
     font-family: arial;
