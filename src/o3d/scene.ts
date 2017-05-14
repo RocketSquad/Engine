@@ -99,13 +99,16 @@ export default class Scene extends THREE.Scene {
         light.position.set(0, 5, 5);
         this.add(light);
 
-        const ent = new Entity({vox: voxDataFiles[RandomTribe()]});
+        const ent = new Entity({
+            vox: voxDataFiles[RandomTribe()],
+            controller: {moveSpeed: 10},
+        });
         this.add(ent);
         
-        this.player = new Vox(voxDataFiles[RandomTribe()]);
-        const controller = new CharacterController(this.player);
-        // player data
-        this.add(this.player);
+        // this.player = new Vox(voxDataFiles[RandomTribe()]);
+        // const controller = new CharacterController(this.player);
+        // // player data
+        // this.add(this.player);
 
         sceneData.vox.forEach(voxData => {
             let data = {};
@@ -216,6 +219,8 @@ export default class Scene extends THREE.Scene {
     tick() {
         requestAnimationFrame(this.tick);
         const time = Date.now();
+
+        SystemManagerInst.update(0.016);
 
         Object.keys(this.waterMap).forEach(xkey => {
             Object.keys(this.waterMap[xkey]).forEach(ykey => {

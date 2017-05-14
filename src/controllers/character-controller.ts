@@ -75,7 +75,7 @@ export default class CharacterController {
             cam.lookAt(dstPosition);
         }
 
-        console.log(this.health);
+        //console.log(this.health);
 
         if (keys.w) {
             const dmgTaken = 20

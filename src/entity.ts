@@ -1,24 +1,28 @@
 import * as THREE from 'three';
 import * as uuid from 'uuid';
 
-interface ITransformData {
+export interface ITransformData {
     position: number[]
 } 
 
-interface IVoxData {
+export interface IVoxData {
     file: string;
+}
+
+export interface IControllerData {
+    moveSpeed: number;
 }
 
 interface IEntityData {
     transform?: ITransformData;
     vox?: IVoxData;
+    controller?: IControllerData;
 }
 
 export default class Entity extends THREE.Object3D {
-    state: {[key: string]: any};
     
     constructor(data: IEntityData) {
         super();
-        this.state = data;
+        this.userData = data;
     }
 }

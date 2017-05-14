@@ -1,7 +1,6 @@
 import {ISystem} from '../systemManager';
 import Entity from '../entity';
 import Vox from '../o3d/vox';
-import {current} from '../o3d/scene';
 import * as THREE from 'three';
 
 interface IAnimationData {
@@ -27,11 +26,10 @@ export default class RenderingSystem implements ISystem {
     }
 
     add(entity: Entity) {
-        if(entity.state['vox'] !== undefined) {
-            this.vox[entity.id] = new Vox(entity.state['vox']);
+        if(entity.userData['vox'] !== undefined) {
+            this.vox[entity.id] = new Vox(entity.userData['vox']);
             this.relativeEntities[entity.id] = entity;
-            entity.position.copy(new THREE.Vector3(0, 5, 5));
-            current.add(this.vox[entity.id]);
+            entity.add(this.vox[entity.id]);
         }
     }
 
