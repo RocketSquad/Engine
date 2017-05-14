@@ -175,7 +175,9 @@ export default class PlayerControllerSystem implements ISystem {
         }
 
         const phrases = [
-            'I like pina coladas',
+            'I like pinya coladas',
+            'Those moves are Jurra sick',
+            'Let me show you my Cambrian explosion',
             'More money, more',
             'See you later alligator, work that tail',
             'Grind that pole until you are dinosaur'
