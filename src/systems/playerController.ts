@@ -66,16 +66,13 @@ export default class PlayerControllerSystem implements ISystem {
     getControllerDirection() {
         let forward = 0;
         let turn = 0;
-        let up = 0;
 
-        if (keys.w) forward = 1;
-        if (keys.s) forward = -1;
-        if (keys.d) turn = 1;
-        if (keys.a) turn = -1;
-        if (keys.x) up = 1;
-        if (keys.c) up = -1;
+        if (keys[38]) forward = 1;
+        if (keys[40]) forward = -1;
+        if (keys[37]) turn = -1;
+        if (keys[39]) turn = 1;
 
-        return new THREE.Vector3(turn, up, -forward);
+        return new THREE.Vector3(turn, 0, -forward);
     }
 
     update(dt: number) {
@@ -99,10 +96,9 @@ export default class PlayerControllerSystem implements ISystem {
             entity.rotation.copy(new THREE.Euler(0, Math.atan2(direction.x, direction.z), 0));
         });
 
-        if ((<IWindowGame>window).camera && this.target) {
-            const cam = (<IWindowGame>window).camera;
+        if ((window as IWindowGame).camera && this.target) {
+            const cam = (window as IWindowGame).camera;
             const axis = new THREE.Vector3().fromArray(this.data.cameraLookAt);
-            // axis.applyQuaternion(this.target.quaternion);
 
             const dstPosition = this.target.position.clone().add(axis);
             const camPosition = this.target.position.clone().add(new THREE.Vector3().fromArray(this.data.cameraOffset));
