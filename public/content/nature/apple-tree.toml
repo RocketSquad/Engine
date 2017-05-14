@@ -1,0 +1,11 @@
+file = 'content/tiles/tree.toml'
+
+[[child]]
+    file = 'content/character/apple.toml'
+    position = [0, 1, 0]
+[[child]]
+    file = 'content/character/apple.toml'
+    position = [0, 1, -1]
+    [[child]]
+    file = 'content/character/apple.toml'
+    position = [-0.5, 1.0, -0.5]

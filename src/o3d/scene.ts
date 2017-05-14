@@ -7,10 +7,10 @@ import * as uuid from 'uuid';
 import {SystemManagerInst} from '../systemManager';
 
 interface IInstanceData extends IVoxData {
-    file: string;
-    def: string;
+    file?: string;
+    child?: IInstanceData[];
+    def?: string;
 }
-
 
 interface ISceneData {
     entity?: IInstanceData[];
@@ -110,6 +110,38 @@ export default class Scene extends THREE.Scene {
         light.position.set(0, 5, 5);
         this.add(light);
 
+        const LoadEntity = async (instanceData: IInstanceData) => {
+            const data: any = { child: [] };
+
+            const resolveFile = async (file) => {
+                const fdata = await Get(`/${file}`);
+                const childs = fdata.child || [];
+
+                if(fdata.file) {
+                    const subData = await resolveFile(fdata.file);
+                    const subChilds = subData.child || [];
+                    Object.assign(fdata, subData, { child: childs.concat(subChilds) });
+                }
+
+                return fdata;
+            };
+
+            if(instanceData.file) {
+                Object.assign(data, await resolveFile(instanceData.file));
+            }
+
+            Object.assign(data, instanceData);
+            const o3d = new Vox(data as IVoxData);
+
+            if(data.child.length > 0) {
+                for(let i = 0; i < data.child.length; i++) {
+                    o3d.add(await LoadEntity(data.child[i]));
+                }
+            }
+
+            return o3d;
+        };
+
         (async () => {
             const ent = new Entity( {
                 vox: DataFiles[RandomTribe()],
@@ -122,23 +154,7 @@ export default class Scene extends THREE.Scene {
         }) ();
 
         sceneData.entity.forEach(async voxData => {
-            const data = {};
-            if (voxData.file) {
-                Object.assign(data, await Get(`/${voxData.file}`));
-            }
-
-            if (voxData.def && sceneData.def[voxData.def]) {
-                const defData = sceneData.def[voxData.def];
-
-                if(defData.file) {
-                    Object.assign(data, await Get(`/${defData.file}`));
-                }
-
-                Object.assign(data, defData);
-            }
-
-            Object.assign(data, voxData);
-            this.add(new Vox(data as IVoxData));
+            this.add(await LoadEntity(voxData));
         });
 
         const handlePlayer = (playerUpdate: IPlayerUpdate) => {
