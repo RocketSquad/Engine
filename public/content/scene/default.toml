@@ -7,6 +7,9 @@
 [def.enemy1]
     file = 'content/character/enemy1.toml'
 
+[def.friend1]
+    file = 'content/character/friend1.toml'
+
 [[entity]]
     def = 'tree'
     position = [0, 0, -10]
@@ -64,3 +67,7 @@
 [[entity]]
     def = 'enemy1'
     position = [-6.0, 0.0, 5.0]
+
+[[entity]]
+    def = 'friend1'
+    position = [4.0, 0.5, 6.0]
