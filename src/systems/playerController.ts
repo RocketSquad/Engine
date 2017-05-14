@@ -56,12 +56,29 @@ export default class PlayerControllerSystem implements ISystem {
         return new THREE.Vector3(turn, up, -forward);
     }
 
+    getControllerDirection() {
+        let forward = 0;
+        let turn = 0;
+        let up = 0;
+        
+        if (keys.w) forward = 1;
+        if (keys.s) forward = -1;
+        if (keys.d) turn = 1;
+        if (keys.a) turn = -1;
+        if (keys.x) up = 1;
+        if (keys.c) up = -1;
+
+        return new THREE.Vector3(turn, up, -forward);
+    }
+
     update(dt: number) {
         const delta = this.clock.getDelta();
 
         this.relativeEntities.forEach(entity => {
             const input = this.getControllerInput();
+            const direction = this.getControllerDirection();
             entity.position.add(input.multiplyScalar(entity.userData.controller.moveSpeed * dt));
+            entity.rotation.copy(new THREE.Euler(0, Math.atan2(direction.x, direction.z), 0));
         });
 
         if ((<IWindowGame>window).camera && this.target) {
