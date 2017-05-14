@@ -177,7 +177,8 @@ export default class PlayerControllerSystem implements ISystem {
         const phrases = [
             'I like pina coladas',
             'More money, more',
-            'See you later alligator, work that tail'
+            'See you later alligator, work that tail',
+            'Grind that pole until you are dinosaur'
         ];
 
         // Space to play sounds!!
