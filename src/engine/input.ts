@@ -18,6 +18,22 @@ window.addEventListener('blur', (e) => {
      });
 });
 
+
+
+window.addEventListener('gamepadconnected', e => {
+    const index = (e as any).gamepad.index;
+    console.log("connection event for " + index);
+    const gamepad = navigator.getGamepads()[index];
+    gamepads[index] = gamepad;
+    console.log("end of connection event for " + index);
+});
+
+window.addEventListener('gamepaddisconnected', e => {
+    console.log("disconnection event");
+    const index = (e as any).gamepad.index;
+    delete gamepads[index];
+});
+
 document.addEventListener('keyup', (e) => {
     const lookUp = KeyLookUp[e.keyCode];
 
@@ -51,6 +67,7 @@ document.addEventListener('mouseup', e => {
     mouse.left = false;
 });
 
+export const gamepads: Gamepad[] = [];
 export const keys: {[key: string]: boolean} = {};
 export const mouse = {
     x: 0,

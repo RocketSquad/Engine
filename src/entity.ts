@@ -11,6 +11,7 @@ export interface IVoxData {
 
 export interface IControllerData {
     moveSpeed: number;
+    rotSpeed: number;
 }
 
 interface IEntityData {
