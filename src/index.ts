@@ -50,7 +50,7 @@ const render = () => {
     renderer.render(current, camera);
 
     let hwnd = window as IHudWindow;
-    hwnd.hud.render();
+    hwnd.hud.renderFallback();
     //var elapsedTime = Date.now() - startTime;
     //document.getElementById("timer").innerHTML = (elapsedTime / 1000).toFixed(3);
 

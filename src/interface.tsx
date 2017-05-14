@@ -6,6 +6,18 @@ class Hud {
   ammo: number;
   clipSize: number;
   logObj: string[];
+  ba_dings: number;
+
+  renderFallback() {
+    ReactDOM.render(
+      <div>
+        <div id="health">
+          <b>Ba-dings:</b> {hwnd.hud.ba_dings}
+        </div>
+      </div>,
+      document.getElementById('hud')
+    );
+  }
 
   render() {
     ReactDOM.render(
