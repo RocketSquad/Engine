@@ -9,7 +9,7 @@ import RMath from '../engine/math';
 import * as Howl from 'howler';
 import {current} from '../o3d/scene';
 import { IHudWindow } from "../interface";
-
+import { SayIt } from '../engine/voice';
 interface IWindowGame extends Window {
     camera: THREE.Camera;
 }
@@ -35,10 +35,12 @@ export default class PlayerControllerSystem implements ISystem {
     target: Entity;
     clock: THREE.Clock;
     data: ICameraData;
+    cooldown: number;
 
     constructor() {
         this.relativeEntities = [];
         this.clock = new THREE.Clock();
+        this.cooldown = Math.floor(Math.random() * 10);
         this.data = {
             cameraLookAt: [0, 2, -1],
             cameraOffset: [0, 4, 3],
@@ -172,8 +174,19 @@ export default class PlayerControllerSystem implements ISystem {
             cam.lookAt(dstPosition);
         }
 
+        const phrases = [
+            'I like pina coladas',
+            'More money, more',
+            'See you later alligator, work that tail'
+        ];
+
         // Space to play sounds!!
         if(keys[32] && !soundFired) {
+            this.cooldown--;
+            if(this.cooldown < 1) {
+                SayIt(phrases[Math.round(Math.random() * (phrases.length -1))]);
+                this.cooldown = Math.floor(Math.random() * 10);
+            }
             const pitchShift = 4; // 4 percent random rate/pitch modulation
             sound.rate(Math.random() * pitchShift / 100 + 1.0 - (pitchShift/100/2));
             sound.play();
