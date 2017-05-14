@@ -5,5 +5,5 @@ jitter = 0.1
 [animation.idle]
     speed = 1000
     vox = [
-        "fallback/coin.vox"
+        "vox/ammo/coin.vox"
     ]
