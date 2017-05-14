@@ -1,5 +1,6 @@
 import * as THREE from 'three';
-import Vox, {IVoxData} from './vox';
+import Vox, { IVoxData } from './vox';
+import { Gets, Get } from '../engine/assets';
 import CharacterController from '../controllers/character-controller';
 import * as uuid from 'uuid';
 
@@ -11,13 +12,13 @@ interface ISceneData {
     vox?: IInstanceData[];
 }
 
-interface Vec3 {
+interface IVec3 {
     x: number;
     y: number;
     z: number;
 }
 
-interface Vec4 {
+interface IVec4 {
     w: number;
     x: number;
     y: number;
@@ -26,9 +27,9 @@ interface Vec4 {
 
 interface IPlayerUpdate {
     entityId: string;
-    position: Vec3;
-    rotation: Vec4;
-    velocity: Vec3;
+    position: IVec3;
+    rotation: IVec4;
+    velocity: IVec3;
     tribe?: number;
     animation?: string;
 }
@@ -38,19 +39,19 @@ interface IPlayerMessage {
     payload: IPlayerUpdate;
 }
 
-const voxDataFiles = {
-    character: require('../content/character/character.toml'),
-    wall: require('../content/tiles/wall.toml'),
-    sword: require('../content/character/sword.toml'),
-    rain: require('../content/character/rain.toml'),
-    old: require('../content/character/old.toml'),
-    level: require('../content/random/testlevel.toml'),
-    grass: require('../content/tiles/grass.toml'),
-    dirt: require('../content/tiles/dirt.toml'),
-    water: require('../content/tiles/water.toml'),
-    tree: require('../content/tiles/tree.toml'),
-    water2: require('../content/tiles/water2.toml')
-};
+const DataFiles = Gets({
+    character: '/content/character/character.toml',
+    wall: '/content/tiles/wall.toml',
+    sword: '/content/character/sword.toml',
+    rain: '/content/character/rain.toml',
+    old: '/content/character/old.toml',
+    level: '/content/random/testlevel.toml',
+    grass: '/content/tiles/grass.toml',
+    dirt: '/content/tiles/dirt.toml',
+    water: '/content/tiles/water.toml',
+    tree: '/content/tiles/tree.toml',
+    water2: '/content/tiles/water2.toml'
+});
 
 const tribes = [
     'character',
@@ -67,12 +68,17 @@ export default class Scene extends THREE.Scene {
     send: (msg: any) => Promise<any>;
     player: Vox;
     uuid: string;
-    players: {[key: string]: Vox};
+    players: { [key: string]: Vox };
     grassMap: any;
     waterMap: any;
 
-    constructor(sceneData: ISceneData = { vox: [] }) {
+    constructor(scenePromise: Promise<ISceneData>) {
         super();
+        this.setupScene(scenePromise);
+    }
+
+    async setupScene(scenePromise: Promise<ISceneData>) {
+        const sceneData = await scenePromise;
         sceneData.vox = sceneData.vox || [];
         current = this;
         this.uuid = uuid.v4();
@@ -83,43 +89,41 @@ export default class Scene extends THREE.Scene {
         light.position.set(0, 5, 5);
         this.add(light);
 
-        this.player = new Vox(voxDataFiles[RandomTribe()]);
+        this.player = new Vox(DataFiles.character);
         const controller = new CharacterController(this.player);
         // player data
         this.add(this.player);
 
-        sceneData.vox.forEach(voxData => {
+        sceneData.vox.forEach(async voxData => {
             let data = {};
-            if(voxData.file) {
-                Object.assign(data, voxDataFiles[voxData.file]);
+            if (voxData.file) {
+                data = await DataFiles[voxData.file];
             }
-
             Object.assign(data, voxData);
-
-            this.add(new Vox(<IVoxData>data)); 
+            this.add(new Vox(data as IVoxData));
         });
 
         const handlePlayer = (playerUpdate: IPlayerUpdate) => {
-            if(playerUpdate.entityId === this.uuid) return;
+            if (playerUpdate.entityId === this.uuid) return;
 
-            if(!this.players[playerUpdate.entityId]) {
+            if (!this.players[playerUpdate.entityId]) {
                 const tribe = tribes[playerUpdate.tribe ? playerUpdate.tribe : Math.round(Math.random() * 3)];
-                this.players[playerUpdate.entityId] = new Vox(voxDataFiles[tribe]);
+                this.players[playerUpdate.entityId] = new Vox(DataFiles[tribe]);
                 this.add(this.players[playerUpdate.entityId]);
             }
 
             const player = this.players[playerUpdate.entityId];
 
             const newPos = new THREE.Vector3();
-            newPos.set(playerUpdate.position.x/100,  playerUpdate.position.z/100, playerUpdate.position.y/100);
-            
+            newPos.set(playerUpdate.position.x / 100, playerUpdate.position.z / 100, playerUpdate.position.y / 100);
+
             const rot = playerUpdate.rotation;
             const newRot = new THREE.Vector3(
                 rot.x,
                 rot.y,
                 rot.z
             );
-            
+
             player.position.lerp(newPos, 0.5);
             player.rotation.setFromVector3(newRot);
 
@@ -129,7 +133,6 @@ export default class Scene extends THREE.Scene {
             // }
         };
 
-      
         this.createTiles();
 
         this.tick = this.tick.bind(this);
@@ -140,29 +143,30 @@ export default class Scene extends THREE.Scene {
         this.grassMap = {};
         this.waterMap = {};
 
-        const grassTile = new Vox(voxDataFiles.grass);
-        const dirtTile = new Vox(voxDataFiles.dirt);
-        const waterTile = new Vox(voxDataFiles.water);
-        const waterTile2 = new Vox(voxDataFiles.water2);
+        const grassTile = new Vox(DataFiles.grass);
+        const dirtTile = new Vox(DataFiles.dirt);
+        const waterTile = new Vox(DataFiles.water);
+        const waterTile2 = new Vox(DataFiles.water2);
+
+        await DataFiles.all;
 
         const tileModel = await grassTile.animations.idle.vox[0];
         const dirtModel = await dirtTile.animations.idle.vox[0];
         const waterModel = await waterTile.animations.idle.vox[0];
         const waterModel2 = await waterTile2.animations.idle.vox[0];
 
-        for(let x = -50; x < 50; x++) {
+        for (let x = -50; x < 50; x++) {
             this.waterMap[x] = {};
-            for(let y = -50; y < 50; y++) {
+            for (let y = -50; y < 50; y++) {
                 const doWater = x > -20 && x < 20 && y > -20 && y < 20;
 
                 const tile = doWater ? waterModel.clone() : tileModel.clone();
                 const tileD = doWater ? waterModel2.clone() : dirtModel.clone();
 
-
                 tile.position.set(x + 30, 0, y + 2);
                 tileD.position.set(x + 30, 0, y + 2);
 
-                if(doWater) {
+                if (doWater) {
                     this.waterMap[x][y] = tile;
                     tile.material.opacity = 0.8;
                     tile.material.transparent = true;
@@ -173,19 +177,19 @@ export default class Scene extends THREE.Scene {
                     tile.origy = tile.position.y;
                 } else {
 
-                    const positionOffset = 
-                    (
-                        Math.sin(x * 0.2) 
-                        + Math.cos(y * 0.8) * 0.1
-                    ) * 0.5 - 0.05;
+                    const positionOffset =
+                        (
+                            Math.sin(x * 0.2)
+                            + Math.cos(y * 0.8) * 0.1
+                        ) * 0.5 - 0.05;
                     tile.position.y += positionOffset;
                     tileD.position.y += positionOffset;
                 }
                 tile.rotateY(THREE.Math.degToRad(Math.round(Math.random() * 3) * 90));
                 tileD.rotateY(THREE.Math.degToRad(Math.round(Math.random() * 3) * 90));
 
-                if(!doWater && Math.abs(x) % 20 < 4 && Math.abs(y) % 20 < 4) {
-                     this.add(tileD);
+                if (!doWater && Math.abs(x) % 20 < 4 && Math.abs(y) % 20 < 4) {
+                    this.add(tileD);
                 } else {
                     this.add(tile);
                     this.add(tileD);
@@ -200,20 +204,19 @@ export default class Scene extends THREE.Scene {
 
         Object.keys(this.waterMap).forEach(xkey => {
             Object.keys(this.waterMap[xkey]).forEach(ykey => {
-                const positionOffset = 
+                const positionOffset =
                     (
-                      Math.sin(time * 0.0005 + parseInt(xkey, 10) * 0.2) 
-                    + Math.cos(time * 0.0005 + parseInt(ykey, 10) * 0.8) * 0.1
-                    ) 
-                 * 0.5 - 0.05;
+                        Math.sin(time * 0.0005 + parseInt(xkey, 10) * 0.2)
+                        + Math.cos(time * 0.0005 + parseInt(ykey, 10) * 0.8) * 0.1
+                    )
+                    * 0.5 - 0.05;
                 const tile = this.waterMap[xkey][ykey];
                 tile.position.y = tile.origy + positionOffset;
 
-                //this.waterMap[xkey][ykey].rotateY(THREE.Math.degToRad(Math.round(Math.random() * 3) * 90));
+                // this.waterMap[xkey][ykey].rotateY(THREE.Math.degToRad(Math.round(Math.random() * 3) * 90));
             });
         });
     }
-    
 }
 
-current = new Scene(require('../content/scene/default.toml'));
+current = new Scene(Get('../content/scene/default.toml'));

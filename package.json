@@ -1,5 +1,5 @@
 {
-  "name": "ld38",
+  "name": "rocketsquad-engine",
   "version": "1.0.0",
   "description": "",
   "main": "webpack.config.js",
@@ -11,7 +11,7 @@
     "rtc-quickconnect": "^5.8.0",
     "tape": "^4.6.3",
     "three": "^0.85.0",
-    "toml-loader": "^1.0.0",
+    "toml": "^2.3.2",
     "uuid": "^3.0.1",
     "ws": "^2.3.1"
   },
