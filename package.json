@@ -8,6 +8,8 @@
     "express": "^4.15.2",
     "howler": "^2.0.3",
     "physijs": "0.0.4",
+    "react": "^15.5.4",
+    "react-dom": "^15.5.4",
     "rtc-quickconnect": "^5.8.0",
     "tape": "^4.6.3",
     "three": "^0.85.0",
