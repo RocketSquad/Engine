@@ -101,7 +101,7 @@ export default class Scene extends THREE.Scene {
 
         const ent = new Entity({
             vox: voxDataFiles[RandomTribe()],
-            controller: {moveSpeed: 10},
+            controller: {moveSpeed: 10, isLocalPlayer: true},
         });
         this.add(ent);
         

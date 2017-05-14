@@ -11,6 +11,7 @@ export interface IVoxData {
 
 export interface IControllerData {
     moveSpeed: number;
+    isLocalPlayer: boolean;
 }
 
 interface IEntityData {
@@ -20,7 +21,7 @@ interface IEntityData {
 }
 
 export default class Entity extends THREE.Object3D {
-    
+
     constructor(data: IEntityData) {
         super();
         this.userData = data;

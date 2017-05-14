@@ -34,11 +34,16 @@ export default class PlayerControllerSystem implements ISystem {
         if(entity.userData.controller !== undefined) {
             this.relativeEntities[entity.id] = entity;
             this.target = entity;
+            entity.userData.controller.isLocalPlayer;
         }
     }
 
     remove(entity: Entity) {
         this.relativeEntities[entity.id] = undefined;
+    }
+
+    setEntityAsLocalPlayer(entity: Entity) {
+        
     }
 
     getControllerInput(): THREE.Vector3 {
