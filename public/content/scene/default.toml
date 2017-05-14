@@ -3,4 +3,16 @@
     position = [0, 0, 0]
 
 [[entity]]
-    file = 'content/fallback/'
+    file = 'content/fallback/pole.toml'
+
+[[entity]]
+    file = 'content/character/enemy1.toml'
+    position = [-5, 0, 0]
+
+[[entity]]
+    file = 'content/character/friend1.toml'
+    position = [5, 0, 0]
+
+[[entity]]
+    file = 'content/character/dinostrip.toml'
+    position = [0, 0, -1]

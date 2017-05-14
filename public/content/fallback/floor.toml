@@ -23,8 +23,6 @@
     rotation = [90, -1, 0]
     position = [-5, -1, 0]
 
-
-
 [[child]]
     file = 'content/tiles/wall.toml'
     rotation = [90, -1, 0]
