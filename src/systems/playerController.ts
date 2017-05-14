@@ -23,6 +23,7 @@ interface ICameraData {
 let soundFired = false;
 const sound = new Howl.Howl({
     src: ['./sfx/sacktap.wav'],
+    volume: 0.8,
     onend: () => {
         soundFired = false;
     },
