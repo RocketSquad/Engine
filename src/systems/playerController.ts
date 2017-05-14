@@ -64,7 +64,7 @@ export default class PlayerControllerSystem implements ISystem {
         if (keys.c) up = -1;
 
         const gp = navigator.getGamepads()[0];
-        console.log(JSON.stringify(gp));
+        //console.log(JSON.stringify(gp));
 
         if(gp) {
             forward = -gp.axes[1];
