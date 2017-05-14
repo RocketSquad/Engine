@@ -186,7 +186,7 @@ export default class Scene extends THREE.Scene {
             // }
         };
 
-        // this.createTiles();
+        this.createTiles();
 
         this.tick = this.tick.bind(this);
         this.tick();
@@ -208,20 +208,20 @@ export default class Scene extends THREE.Scene {
         const waterModel = await waterTile.animations.idle.vox[0];
         const waterModel2 = await waterTile2.animations.idle.vox[0];
 
-        for (let x = -50; x < 50; x++) {
+        for (let x = -20; x < 20; x++) {
             this.waterMap[x] = {};
-            for (let y = -50; y < 50; y++) {
-                const doWater = x > -20 && x < 20 && y > -20 && y < 20;
+            for (let y = -5; y < 20; y++) {
+                const doWater = true;
 
                 const tile = doWater ? waterModel.clone() : tileModel.clone();
                 const tileD = doWater ? waterModel2.clone() : dirtModel.clone();
 
-                tile.position.set(x + 30, 0, y + 2);
-                tileD.position.set(x + 30, 0, y + 2);
+                tile.position.set(x, 0, y);
+                tileD.position.set(x, 0, y);
 
                 if (doWater) {
                     this.waterMap[x][y] = tile;
-                    tile.material.opacity = 0.8;
+                    tile.material.opacity = 0.4;
                     tile.material.transparent = true;
                     tileD.position.set(x + 30, 0, y + 2);
                     tileD.material.opacity = 0.6;
@@ -245,7 +245,7 @@ export default class Scene extends THREE.Scene {
                     this.add(tileD);
                 } else {
                     this.add(tile);
-                    this.add(tileD);
+                    //this.add(tileD);
                 }
             }
         }
@@ -258,7 +258,6 @@ export default class Scene extends THREE.Scene {
 
         SystemManagerInst.update(delta);
 
-        /*
         Object.keys(this.waterMap).forEach(xkey => {
             Object.keys(this.waterMap[xkey]).forEach(ykey => {
                 const positionOffset =
@@ -272,7 +271,7 @@ export default class Scene extends THREE.Scene {
 
                 // this.waterMap[xkey][ykey].rotateY(THREE.Math.degToRad(Math.round(Math.random() * 3) * 90));
             });
-        });*/
+        });
     }
 }
 

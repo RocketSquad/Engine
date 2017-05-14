@@ -3,6 +3,32 @@
     position = [0, 0, 0]
 
 [[entity]]
+    file = 'content/fallback/floor.toml'
+    position = [-15, 0, 0]
+
+[[entity]]
+    file = 'content/fallback/carpet.toml'
+    rotation = [0, 90, 0]
+    jitter = 0.2
+    position = [0.0, -0.3, 0.0]
+
+[[entity]]
+    file = 'content/fallback/floor.toml'
+    position = [15, 0, 0]
+
+[[entity]]
+    file = 'content/fallback/floor.toml'
+    position = [15, 0, 9]
+
+[[entity]]
+    file = 'content/fallback/floor.toml'
+    position = [-15, 0, 9]
+
+[[entity]]
+    file = 'content/fallback/floor.toml'
+    position = [0, 0, 9]
+
+[[entity]]
     file = 'content/fallback/pole.toml'
 
 [[entity]]

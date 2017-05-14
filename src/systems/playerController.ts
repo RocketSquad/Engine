@@ -8,6 +8,7 @@ import StatsSystem, { IStatsData } from './stats';
 import RMath from '../engine/math';
 import * as Howl from 'howler';
 import {current} from '../o3d/scene';
+import { IHudWindow } from "../interface";
 
 interface IWindowGame extends Window {
     camera: THREE.Camera;
@@ -37,14 +38,15 @@ export default class PlayerControllerSystem implements ISystem {
         this.relativeEntities = [];
         this.clock = new THREE.Clock();
         this.data = {
-            cameraLookAt: [0, 0, 1],
-            cameraOffset: [0, 8, 5],
+            cameraLookAt: [0, 2, -1],
+            cameraOffset: [0, 4, 3],
             cameraLerp: 1,
         };
     }
 
     add(entity: Entity) {
         if (entity.userData.controller !== undefined) {
+            entity.position.set(0, 0, 7);
             this.relativeEntities[entity.id] = entity;
             this.target = entity;
             entity.userData.controller.isLocalPlayer = false;
@@ -170,8 +172,11 @@ export default class PlayerControllerSystem implements ISystem {
 
         // Space to play sounds!!
         if(keys[32] && !soundFired) {
+            const pitchShift = 4; // 4 percent random rate/pitch modulation
+            sound.rate(Math.random() * pitchShift / 100 + 1.0 - (pitchShift/100/2));
             sound.play();
             soundFired = true;
+
             Get('./content/ammo/coin.toml').then((data) => {
                 const coin = new Entity( {
                     vox: data,
@@ -180,6 +185,10 @@ export default class PlayerControllerSystem implements ISystem {
                 current.add(coin);
                 coin.position.copy(new THREE.Vector3((Math.random() * 10) - 5, 1, (Math.random() * 10) - 5));
             });
+
+            let hwnd = window as IHudWindow;
+            hwnd.hud.ba_dings++;
+
         }
     }
 }
