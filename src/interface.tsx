@@ -1,25 +1,40 @@
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
 
-const health = 100
-const ammo = 50;
-const clipSize = 100;
-const logObj = ["abc", "def"];
+class Hud {
+  health: number;
+  ammo: number;
+  clipSize: number;
+  logObj: string[];
 
-ReactDOM.render(
-  <div>
-    <div id="health">
-      <b>HP:</b> {health}
-    </div>
-    <div id="ammo">
-      <b>Ammo:</b> {ammo}/{clipSize}
-    </div>
-    <div id="log">{
-      logObj.forEach((element) => {
-        console.log(element);
-        <div>{element}</div>
-      })}
-    </div>
-  </div>,
-  document.getElementById('hud')
-);
+  render() {
+    ReactDOM.render(
+      <div>
+        <div id="health">
+          <b>HP:</b> {hwnd.hud.health}
+        </div>
+        <div id="ammo">
+          <b>Ammo:</b> {hwnd.hud.ammo}/{hwnd.hud.clipSize}
+        </div>
+        <div id="log">{
+          hwnd.hud.logObj.forEach((element) => {
+            console.log(element);
+            <div>{element}</div>
+          })}
+        </div>
+      </div>,
+      document.getElementById('hud')
+    );
+  }
+}
+
+export interface IHudWindow extends Window {
+  hud: Hud;
+}
+
+let hwnd = window as IHudWindow;
+hwnd.hud = new Hud();
+hwnd.hud.health = 7
+hwnd.hud.ammo = 50;
+hwnd.hud.clipSize = 100;
+hwnd.hud.logObj = ["abc", "def"];

@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import {current} from './o3d/scene';
 
 import './interface.tsx';
+import { IHudWindow } from "./interface";
 
 interface IWindowGame extends Window {
     camera: THREE.Camera;
@@ -47,6 +48,9 @@ const render = () => {
 
     //var startTime = Date.now();
     renderer.render(current, camera);
+
+    let hwnd = window as IHudWindow;
+    hwnd.hud.render();
     //var elapsedTime = Date.now() - startTime;
     //document.getElementById("timer").innerHTML = (elapsedTime / 1000).toFixed(3);
 
