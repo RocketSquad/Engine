@@ -1,9 +1,9 @@
-import { ISystem } from '../systemManager';
+import { ISystem, SystemManagerInst } from '../systemManager';
 import Entity, { IControllerData } from '../entity';
 import * as THREE from 'three';
 import VoxModel from '../o3d/vox';
 import { keys } from '../engine/input';
-import { IStatsData } from './stats';
+import StatsSystem, { IStatsData } from './stats';
 
 interface IWindowGame extends Window {
     camera: THREE.Camera;
@@ -66,16 +66,13 @@ export default class PlayerControllerSystem implements ISystem {
     getControllerDirection() {
         let forward = 0;
         let turn = 0;
-        let up = 0;
 
-        if (keys.w) forward = 1;
-        if (keys.s) forward = -1;
-        if (keys.d) turn = 1;
-        if (keys.a) turn = -1;
-        if (keys.x) up = 1;
-        if (keys.c) up = -1;
+        if (keys[38]) forward = 1;
+        if (keys[40]) forward = -1;
+        if (keys[37]) turn = -1;
+        if (keys[39]) turn = 1;
 
-        return new THREE.Vector3(turn, up, -forward);
+        return new THREE.Vector3(turn, 0, -forward);
     }
 
     update(dt: number) {
@@ -84,28 +81,24 @@ export default class PlayerControllerSystem implements ISystem {
         this.relativeEntities.forEach(entity => {
             let input = this.getControllerInput();
 
+            if (keys.w || keys.s || keys.d || keys.a) {
+                const statSystem = SystemManagerInst.getSystemByName("StatsSystem") as StatsSystem;
+                statSystem.useStamina(entity, 50, dt);
+            }
+
+            let direction = this.getControllerDirection();
             const stats = entity.userData as IStatsData;
             if (stats.dead) {
+                direction = new THREE.Vector3(0, 0, 0);
                 input = new THREE.Vector3(0, 0, 0);
             }
-
-            if (keys.w) {
-                stats.health -= 50 * dt;
-                if (stats.health < 0) {
-                    //.killThePlayer();
-                    stats.health = 0;
-                }
-            }
-
-            const direction = this.getControllerDirection();
             entity.position.add(input.multiplyScalar(entity.userData.controller.moveSpeed * dt));
             entity.rotation.copy(new THREE.Euler(0, Math.atan2(direction.x, direction.z), 0));
         });
 
-        if ((<IWindowGame>window).camera && this.target) {
-            const cam = (<IWindowGame>window).camera;
+        if ((window as IWindowGame).camera && this.target) {
+            const cam = (window as IWindowGame).camera;
             const axis = new THREE.Vector3().fromArray(this.data.cameraLookAt);
-            //axis.applyQuaternion(this.target.quaternion);
 
             const dstPosition = this.target.position.clone().add(axis);
             const camPosition = this.target.position.clone().add(new THREE.Vector3().fromArray(this.data.cameraOffset));
