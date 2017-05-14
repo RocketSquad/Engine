@@ -28,6 +28,8 @@ const sound = new Howl.Howl({
     },
 });
 
+const coinGet = Get('./content/ammo/coin.toml');
+
 export default class PlayerControllerSystem implements ISystem {
     relativeEntities: Entity[];
     target: Entity;
@@ -190,13 +192,15 @@ export default class PlayerControllerSystem implements ISystem {
             sound.play();
             soundFired = true;
 
-            Get('./content/ammo/coin.toml').then((data) => {
+            coinGet.then((data) => {
                 const coin = new Entity( {
                     vox: data,
                 });
+                console.log('made coin!');
 
                 current.add(coin);
-                coin.position.copy(new THREE.Vector3((Math.random() * 10) - 5, 1, (Math.random() * 10) - 5));
+                coin.position.copy(
+                    new THREE.Vector3((Math.random() * 20) - 10, Math.random() * 0.3, (Math.random() * 10) - 5));
             });
 
             let hwnd = window as IHudWindow;
