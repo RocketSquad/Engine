@@ -71,9 +71,7 @@ export default class CharacterController {
             cam.position.lerp(camPosition, data.cameraLerp);
             cam.lookAt(dstPosition);
         }
-
-
-
+        
         /*if (keys.w) {
             const dmgTaken = 20
             this.health -= dmgTaken * delta;
