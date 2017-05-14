@@ -11,7 +11,7 @@ interface IInstanceData extends IVoxData {
 }
 
 interface ISceneData {
-    vox?: IInstanceData[];
+    entity?: IInstanceData[];
 }
 
 interface IVec3 {
@@ -95,7 +95,7 @@ export default class Scene extends THREE.Scene {
 
     async setupScene(scenePromise: Promise<ISceneData>) {
         const sceneData = await scenePromise;
-        sceneData.vox = sceneData.vox || [];
+        sceneData.entity = sceneData.entity || [];
         current = this;
         this.uuid = uuid.v4();
         this.players = {};
@@ -116,10 +116,10 @@ export default class Scene extends THREE.Scene {
             this.add(ent);
         }) ();
 
-        sceneData.vox.forEach(async voxData => {
+        sceneData.entity.forEach(async voxData => {
             let data = {};
             if (voxData.file) {
-                data = await DataFiles[voxData.file];
+                data = await Get(`/${voxData.file}`);
             }
             Object.assign(data, voxData);
             this.add(new Vox(data as IVoxData));
