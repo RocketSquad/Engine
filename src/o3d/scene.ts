@@ -186,7 +186,7 @@ export default class Scene extends THREE.Scene {
             // }
         };
 
-        this.createTiles();
+        // this.createTiles();
 
         this.tick = this.tick.bind(this);
         this.tick();
@@ -258,6 +258,7 @@ export default class Scene extends THREE.Scene {
 
         SystemManagerInst.update(delta);
 
+        /*
         Object.keys(this.waterMap).forEach(xkey => {
             Object.keys(this.waterMap[xkey]).forEach(ykey => {
                 const positionOffset =
@@ -271,7 +272,7 @@ export default class Scene extends THREE.Scene {
 
                 // this.waterMap[xkey][ykey].rotateY(THREE.Math.degToRad(Math.round(Math.random() * 3) * 90));
             });
-        });
+        });*/
     }
 }
 
