@@ -170,6 +170,8 @@ export default class PlayerControllerSystem implements ISystem {
 
         // Space to play sounds!!
         if(keys[32] && !soundFired) {
+            const pitchShift = 4; // 4 percent random rate/pitch modulation
+            sound.rate(Math.random() * pitchShift / 100 + 1.0 - (pitchShift/100/2));
             sound.play();
             //console.log('ding!');
             soundFired = true;
