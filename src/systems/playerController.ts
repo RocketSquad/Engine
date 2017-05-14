@@ -5,6 +5,7 @@ import VoxModel from '../o3d/vox';
 import { keys, gamepads } from '../engine/input';
 import StatsSystem, { IStatsData } from './stats';
 import RMath from '../engine/math';
+import * as Howl from 'howler';
 
 interface IWindowGame extends Window {
     camera: THREE.Camera;
@@ -15,6 +16,14 @@ interface ICameraData {
     cameraOffset: number[];
     cameraLerp;
 }
+
+let soundFired = false;
+const sound = new Howl.Howl({
+    src: ['./sfx/sacktap.wav'],
+    onend: () => {
+        soundFired = false;
+    },
+});
 
 export default class PlayerControllerSystem implements ISystem {
     relativeEntities: Entity[];
@@ -64,7 +73,6 @@ export default class PlayerControllerSystem implements ISystem {
         if (keys.c) up = -1;
 
         const gp = navigator.getGamepads()[0];
-        //console.log(JSON.stringify(gp));
 
         if(gp) {
             forward = -gp.axes[1];
@@ -156,6 +164,13 @@ export default class PlayerControllerSystem implements ISystem {
 
             cam.position.lerp(camPosition, this.data.cameraLerp);
             cam.lookAt(dstPosition);
+        }
+
+        // Space to play sounds!!
+        if(keys['y'] && !soundFired) {
+            sound.play();
+            //console.log('ding!');
+            soundFired = true;
         }
     }
 }

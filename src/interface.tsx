@@ -18,7 +18,7 @@ class Hud {
         </div>
         <div id="log">{
           hwnd.hud.logObj.forEach((element) => {
-            console.log(element);
+            //console.log(element);
             <div>{element}</div>
           })}
         </div>
