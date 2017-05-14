@@ -54,3 +54,7 @@
     position = [0.0, 0.5, 2.5]
     rotation = [90, 0, 0]
 
+[[entity]]
+    file = 'content/character/apple.toml'
+    position = [-4.0, 2.2, 5.0]
+
