@@ -178,7 +178,12 @@ export default class PlayerControllerSystem implements ISystem {
             'I like pina coladas, getting lost inthe rain',
             'Jurassic Fallback 2',
             'More money, more',
-            'See you later alligator, work that tail'
+            'See you later alligator, work that tail',
+            'I like pinya coladas',
+            'Those moves are Jurra sick',
+            'Let me show you my Cambrian explosion',
+            'Jurassic Park that ass over here',
+            'Grind that pole until you are dinosaur'
         ];
 
         // Space to play sounds!!
@@ -197,7 +202,6 @@ export default class PlayerControllerSystem implements ISystem {
                 const coin = new Entity( {
                     vox: data,
                 });
-                console.log('made coin!');
 
                 current.add(coin);
                 coin.position.copy(
