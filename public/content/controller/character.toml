@@ -1,6 +1,4 @@
-turnSpeed = 4
-forwardSpeed = 0
-cameraOffset = [0, 8, 5]
+cameraOffset = [0, 4, 10]
 cameraLookAt = [0, 0, 1]
 cameraLerp = 1
 healthRegen = 5
@@ -9,5 +7,5 @@ staminaRegen = 20
 maxStamina = 50
 
 [controller]
-    moveSpeed=5
-    rotSpeed=420
+    moveSpeed = 0
+    rotSpeed = 420

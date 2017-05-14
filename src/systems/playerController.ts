@@ -26,14 +26,15 @@ export default class PlayerControllerSystem implements ISystem {
         this.relativeEntities = [];
         this.clock = new THREE.Clock();
         this.data = {
-            cameraLookAt: [0, 0, 1],
-            cameraOffset: [0, 8, 5],
+            cameraLookAt: [0, 2, -1],
+            cameraOffset: [0, 4, 3],
             cameraLerp: 1,
         };
     }
 
     add(entity: Entity) {
         if (entity.userData.controller !== undefined) {
+            entity.position.set(0, 0, 7);
             this.relativeEntities[entity.id] = entity;
             this.target = entity;
             entity.userData.controller.isLocalPlayer = false;
