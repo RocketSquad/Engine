@@ -8,8 +8,6 @@ interface IControllerData {
     cameraOffset: number[];
     cameraLookAt: number[];
     cameraLerp: number;
-    healthRegen: number;
-    initialHealth: number;
 }
 
 interface IWindowGame extends Window {
@@ -21,8 +19,6 @@ const data: IControllerData = require('../content/controller/character.toml');
 export default class CharacterController {
     target: Vox;
     clock: THREE.Clock;
-    health = data.initialHealth;
-    dead = false;
 
     constructor(target: Vox) {
         this.target = target;
@@ -47,18 +43,11 @@ export default class CharacterController {
         if (keys.x) up = 1;
         if (keys.c) up = -1;
 
-        const alive = !this.dead; //aka not dead
-        if (alive) {
-            this.health += data.healthRegen * delta; //regen 1 health per tick
-            if (this.health > data.initialHealth) {
-                this.health = data.initialHealth;
+        /*    if (stats.dead) {
+                forward = 0;
+                turn = 0;
             }
-        }
-        if (this.dead) {
-            forward = 0;
-            turn = 0;
-        }
-
+    */
         this.target.rotateY(turn * delta * data.turnSpeed);
         this.target.translateZ(forward * delta * data.forwardSpeed);
         this.target.translateY(up * delta * data.forwardSpeed);
@@ -83,18 +72,18 @@ export default class CharacterController {
             cam.lookAt(dstPosition);
         }
 
-        console.log(this.health);
 
-        if (keys.w) {
+
+        /*if (keys.w) {
             const dmgTaken = 20
             this.health -= dmgTaken * delta;
             if (this.health < 0) {
                 this.killThePlayer();
                 this.health = 0;
             }
-        }
+        }*/
     }
     killThePlayer() {
-        this.dead = true;
+        //    this.dead = true;
     }
 }

@@ -100,6 +100,7 @@ export default class Scene extends THREE.Scene {
         this.add(light);
 
         const ent = new Entity({vox: voxDataFiles[RandomTribe()]});
+        Object.assign(ent, require('../content/character/character.toml'));
         this.add(ent);
         
         this.player = new Vox(voxDataFiles[RandomTribe()]);
