@@ -1,11 +1,13 @@
 import { ISystem, SystemManagerInst } from '../systemManager';
 import Entity, { IControllerData } from '../entity';
+import {Get} from '../engine/assets';
 import * as THREE from 'three';
 import VoxModel from '../o3d/vox';
 import { keys, gamepads } from '../engine/input';
 import StatsSystem, { IStatsData } from './stats';
 import RMath from '../engine/math';
 import * as Howl from 'howler';
+import {current} from '../o3d/scene';
 
 interface IWindowGame extends Window {
     camera: THREE.Camera;
@@ -169,8 +171,15 @@ export default class PlayerControllerSystem implements ISystem {
         // Space to play sounds!!
         if(keys[32] && !soundFired) {
             sound.play();
-            //console.log('ding!');
             soundFired = true;
+            Get('./content/ammo/coin.toml').then((data) => {
+                const coin = new Entity( {
+                    vox: data,
+                });
+
+                current.add(coin);
+                coin.position.copy(new THREE.Vector3((Math.random() * 10) - 5, 1, (Math.random() * 10) - 5));
+            });
         }
     }
 }
