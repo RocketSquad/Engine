@@ -112,7 +112,7 @@ export default class Scene extends THREE.Scene {
                 controller: {moveSpeed: 10},
             });
 
-            Object.assign(ent, await Get('/content/controller/character.toml'));
+            Object.assign(ent.userData, await Get('/content/controller/character.toml'));
             SystemManagerInst.getSystemByName("PlayerControllerSystem").setEntityAsLocalPlayer(ent);
             this.add(ent);
         }) ();
