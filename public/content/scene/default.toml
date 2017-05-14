@@ -70,4 +70,4 @@
 
 [[entity]]
     def = 'friend1'
-    position = [4.0, 0.5, 6.0]
+    position = [4.0, 0.5, 5.0]
