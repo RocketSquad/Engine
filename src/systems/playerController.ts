@@ -84,17 +84,17 @@ export default class PlayerControllerSystem implements ISystem {
         this.relativeEntities.forEach(entity => {
             let input = this.getControllerInput();
 
-            const stats = entity.userData as IStatsData;
-            if (stats.dead) {
-                input = new THREE.Vector3(0, 0, 0);
-            }
-
-            if (keys.w) {
+            if (keys.w || keys.s || keys.d || keys.a) {
                 const statSystem = SystemManagerInst.getSystemByName("StatsSystem") as StatsSystem;
                 statSystem.dealDamage(entity, 50, dt);
             }
 
-            const direction = this.getControllerDirection();
+            let direction = this.getControllerDirection();
+            const stats = entity.userData as IStatsData;
+            if (stats.dead) {
+                direction = new THREE.Vector3(0, 0, 0);
+                input = new THREE.Vector3(0, 0, 0);
+            }
             entity.position.add(input.multiplyScalar(entity.userData.controller.moveSpeed * dt));
             entity.rotation.copy(new THREE.Euler(0, Math.atan2(direction.x, direction.z), 0));
         });
@@ -102,7 +102,7 @@ export default class PlayerControllerSystem implements ISystem {
         if ((<IWindowGame>window).camera && this.target) {
             const cam = (<IWindowGame>window).camera;
             const axis = new THREE.Vector3().fromArray(this.data.cameraLookAt);
-            //axis.applyQuaternion(this.target.quaternion);
+            // axis.applyQuaternion(this.target.quaternion);
 
             const dstPosition = this.target.position.clone().add(axis);
             const camPosition = this.target.position.clone().add(new THREE.Vector3().fromArray(this.data.cameraOffset));
