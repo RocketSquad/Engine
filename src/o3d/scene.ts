@@ -77,6 +77,7 @@ export default class Scene extends THREE.Scene {
     constructor(scenePromise: Promise<ISceneData>) {
         super();
         this.setupScene(scenePromise);
+        this.clock = new THREE.Clock();
     }
 
     add(object: THREE.Object3D) {
@@ -223,8 +224,9 @@ export default class Scene extends THREE.Scene {
     tick() {
         requestAnimationFrame(this.tick);
         const time = Date.now();
+        const delta = this.clock.getDelta();
 
-        SystemManagerInst.update(0.016);
+        SystemManagerInst.update(delta);
 
         Object.keys(this.waterMap).forEach(xkey => {
             Object.keys(this.waterMap[xkey]).forEach(ykey => {
