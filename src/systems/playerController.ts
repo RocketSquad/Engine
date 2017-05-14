@@ -1,11 +1,13 @@
 import { ISystem, SystemManagerInst } from '../systemManager';
 import Entity, { IControllerData } from '../entity';
+import {Get} from '../engine/assets';
 import * as THREE from 'three';
 import VoxModel from '../o3d/vox';
 import { keys, gamepads } from '../engine/input';
 import StatsSystem, { IStatsData } from './stats';
 import RMath from '../engine/math';
 import * as Howl from 'howler';
+import {current} from '../o3d/scene';
 import { IHudWindow } from "../interface";
 
 interface IWindowGame extends Window {
@@ -173,10 +175,20 @@ export default class PlayerControllerSystem implements ISystem {
             const pitchShift = 4; // 4 percent random rate/pitch modulation
             sound.rate(Math.random() * pitchShift / 100 + 1.0 - (pitchShift/100/2));
             sound.play();
-            //console.log('ding!');
             soundFired = true;
+
+            Get('./content/ammo/coin.toml').then((data) => {
+                const coin = new Entity( {
+                    vox: data,
+                });
+
+                current.add(coin);
+                coin.position.copy(new THREE.Vector3((Math.random() * 10) - 5, 1, (Math.random() * 10) - 5));
+            });
+
             let hwnd = window as IHudWindow;
             hwnd.hud.ba_dings++;
+
         }
     }
 }
