@@ -167,7 +167,7 @@ export default class PlayerControllerSystem implements ISystem {
         }
 
         // Space to play sounds!!
-        if(keys['y'] && !soundFired) {
+        if(keys[32] && !soundFired) {
             sound.play();
             //console.log('ding!');
             soundFired = true;
