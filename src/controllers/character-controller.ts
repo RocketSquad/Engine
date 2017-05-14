@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { keys } from '../engine/input';
 import Vox from '../o3d/vox';
+import {Get} from '../engine/assets';
 
 interface IControllerData {
     turnSpeed: number;
@@ -14,7 +15,8 @@ interface IWindowGame extends Window {
     camera: THREE.Camera;
 }
 
-const data: IControllerData = require('../content/controller/character.toml');
+const dataPromise: Promise<IControllerData> = Get('../content/controller/character.toml');
+let data: IControllerData;
 
 export default class CharacterController {
     target: Vox;
@@ -23,8 +25,13 @@ export default class CharacterController {
     constructor(target: Vox) {
         this.target = target;
         this.tick = this.tick.bind(this);
+        this.setup();
+    }
+
+    async setup() {
+        data = await dataPromise;
         this.clock = new THREE.Clock();
-        target.position.set(0, 0, -5);
+        this.target.position.set(0, 0, -5);
         this.tick();
     }
 
@@ -43,11 +50,6 @@ export default class CharacterController {
         if (keys.x) up = 1;
         if (keys.c) up = -1;
 
-        /*    if (stats.dead) {
-                forward = 0;
-                turn = 0;
-            }
-    */
         this.target.rotateY(turn * delta * data.turnSpeed);
         this.target.translateZ(forward * delta * data.forwardSpeed);
         this.target.translateY(up * delta * data.forwardSpeed);
@@ -60,10 +62,10 @@ export default class CharacterController {
             this.target.play('idle');
         }
 
-        if ((<IWindowGame>window).camera) {
-            const cam = (<IWindowGame>window).camera;
+        if((window as IWindowGame).camera) {
+            const cam = (window as IWindowGame).camera;
             const axis = new THREE.Vector3().fromArray(data.cameraLookAt);
-            //axis.applyQuaternion(this.target.quaternion);
+            // axis.applyQuaternion(this.target.quaternion);
 
             const dstPosition = this.target.position.clone().add(axis);
             const camPosition = this.target.position.clone().add(new THREE.Vector3().fromArray(data.cameraOffset));
@@ -71,17 +73,6 @@ export default class CharacterController {
             cam.position.lerp(camPosition, data.cameraLerp);
             cam.lookAt(dstPosition);
         }
-        
-        /*if (keys.w) {
-            const dmgTaken = 20
-            this.health -= dmgTaken * delta;
-            if (this.health < 0) {
-                this.killThePlayer();
-                this.health = 0;
-            }
-        }*/
-    }
-    killThePlayer() {
-        //    this.dead = true;
+
     }
 }

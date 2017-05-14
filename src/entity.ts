@@ -2,8 +2,8 @@ import * as THREE from 'three';
 import * as uuid from 'uuid';
 
 export interface ITransformData {
-    position: number[]
-} 
+    position: number[];
+}
 
 export interface IVoxData {
     file: string;
@@ -11,7 +11,6 @@ export interface IVoxData {
 
 export interface IControllerData {
     moveSpeed: number;
-    isLocalPlayer: boolean;
 }
 
 interface IEntityData {
