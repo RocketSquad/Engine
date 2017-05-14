@@ -2,7 +2,7 @@ import { ISystem } from '../systemManager';
 import Entity from '../entity';
 import * as THREE from "three";
 
-interface IStatsData {
+export interface IStatsData {
     health: number;
     stamina: number;
     healthRegen: number;
@@ -21,25 +21,20 @@ export default class StatsSystem implements ISystem {
 
     add(entity: Entity) {
         this.relativeEntities[entity.id] = entity;
-        console.log("added");
+        const stats = entity.userData as IStatsData;
+        stats.health = stats.maxHealth;
+        stats.stamina = stats.maxStamina;
     }
 
     remove(entity: Entity) {
         this.relativeEntities[entity.id] = undefined;
-        console.log("removed");
-    }
-
-    clamp(current: number, min: number, max: number): number {
-        current = Math.min(current, max);
-        current = Math.max(current, min);
-        return current;
+        const stats = entity.userData as IStatsData;
     }
 
     update(dt: number) {
-        console.log("update");
         this.relativeEntities.forEach((e) => {
             const stats = e.userData as IStatsData;
-            console.log(stats.health);
+         //   console.log(stats.health);
             const alive = !stats.dead; //aka not dead
             if (alive) {
                 stats.health += stats.healthRegen * dt;

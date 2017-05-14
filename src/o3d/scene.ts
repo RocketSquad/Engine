@@ -105,7 +105,7 @@ export default class Scene extends THREE.Scene {
             controller: {moveSpeed: 10},
         });
 
-        Object.assign(ent, require('../content/character/character.toml'));
+        Object.assign(ent.userData, require('../content/controller/character.toml'));
         this.add(ent);
         
         // this.player = new Vox(voxDataFiles[RandomTribe()]);
