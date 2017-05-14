@@ -42,35 +42,40 @@ export default class VoxModel extends THREE.Object3D {
         const dir = './vox';
         this.animations = {};
         const jitter = data.jitter ? data.jitter : 0;
+        if(this.data.animation) {
+            Object.keys(this.data.animation).forEach(key => {
+                const anim: IAnimation = this.data.animation[key];
 
-        Object.keys(this.data.animation).forEach(key => {
-            const anim: IAnimation = this.data.animation[key];
+                this.animations[key] = {
+                    ...anim,
+                    vox: anim.vox.map(file => Get(path.join(dir, file)).then(voxelBin => {
+                        const builder = new MeshBuilder(voxelBin, {
+                            voxelSize: data.size,
+                            vertexColor: true,
+                            optimizeFaces: false,
+                            jitter
+                        });
+                        const mesh = builder.createMesh();
+                        mesh.castShadow = true;
+                        mesh.receiveShadow = true;
+                        return mesh;
+                    })),
+                };
+            });
+        }
 
-            this.animations[key] = {
-                ...anim,
-                vox: anim.vox.map(file => Get(path.join(dir, file)).then(voxelBin => {
-                    const builder = new MeshBuilder(voxelBin, {
-                        voxelSize: data.size,
-                        vertexColor: true,
-                        optimizeFaces: false,
-                        jitter
-                    });
-                    const mesh = builder.createMesh();
-                    mesh.castShadow = true;
-                    mesh.receiveShadow = true;
-                    return mesh;
-                })),
-            };
-        });
         this.voxHolder = new THREE.Object3D();
         if (data.position)
-            this.voxHolder.position.fromArray(data.position);
+            this.position.fromArray(data.position);
 
         if (data.rotation)
-            this.voxHolder.rotation.fromArray(data.rotation.map(x => x * Math.PI / 180));
+            this.rotation.fromArray(data.rotation.map(x => x * Math.PI / 180));
 
         this.add(this.voxHolder);
-        this.play(this.data.default);
+
+        if(this.data.default) {
+            this.play(this.data.default);
+        }
     }
 
     play(animation: string) {

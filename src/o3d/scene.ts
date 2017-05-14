@@ -7,11 +7,14 @@ import * as uuid from 'uuid';
 import {SystemManagerInst} from '../systemManager';
 
 interface IInstanceData extends IVoxData {
-    file: 'character';
+    file?: string;
+    child?: IInstanceData[];
+    def?: string;
 }
 
 interface ISceneData {
-    vox?: IInstanceData[];
+    entity?: IInstanceData[];
+    def?: {[key: string]: IInstanceData};
 }
 
 interface IVec3 {
@@ -96,7 +99,8 @@ export default class Scene extends THREE.Scene {
 
     async setupScene(scenePromise: Promise<ISceneData>) {
         const sceneData = await scenePromise;
-        sceneData.vox = sceneData.vox || [];
+        sceneData.entity = sceneData.entity || [];
+        sceneData.def = sceneData.def || {};
         current = this;
         this.uuid = uuid.v4();
         this.players = {};
@@ -105,6 +109,38 @@ export default class Scene extends THREE.Scene {
         const light = new THREE.DirectionalLight(0xFFFFFF, 0.5);
         light.position.set(0, 5, 5);
         this.add(light);
+
+        const LoadEntity = async (instanceData: IInstanceData) => {
+            const data: any = { child: [] };
+
+            const resolveFile = async (file) => {
+                const fdata = await Get(`/${file}`);
+                const childs = fdata.child || [];
+
+                if(fdata.file) {
+                    const subData = await resolveFile(fdata.file);
+                    const subChilds = subData.child || [];
+                    Object.assign(fdata, subData, { child: childs.concat(subChilds) });
+                }
+
+                return fdata;
+            };
+
+            if(instanceData.file) {
+                Object.assign(data, await resolveFile(instanceData.file));
+            }
+
+            Object.assign(data, instanceData);
+            const o3d = new Vox(data as IVoxData);
+
+            if(data.child.length > 0) {
+                for(let i = 0; i < data.child.length; i++) {
+                    o3d.add(await LoadEntity(data.child[i]));
+                }
+            }
+
+            return o3d;
+        };
 
         (async () => {
             const ent = new Entity( {
@@ -120,13 +156,8 @@ export default class Scene extends THREE.Scene {
             this.add(ent);
         }) ();
 
-        sceneData.vox.forEach(async voxData => {
-            let data = {};
-            if (voxData.file) {
-                data = await DataFiles[voxData.file];
-            }
-            Object.assign(data, voxData);
-            this.add(new Vox(data as IVoxData));
+        sceneData.entity.forEach(async voxData => {
+            this.add(await LoadEntity(voxData));
         });
 
         const handlePlayer = (playerUpdate: IPlayerUpdate) => {

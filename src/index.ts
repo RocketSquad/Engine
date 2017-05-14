@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import {current} from './o3d/scene';
 
+import './interface.tsx';
+
 interface IWindowGame extends Window {
     camera: THREE.Camera;
 }
@@ -42,7 +44,12 @@ window.addEventListener("optimizedResize", handleResize);
 // Render Loop
 const render = () => {
     requestAnimationFrame(render);
+
+    //var startTime = Date.now();
     renderer.render(current, camera);
+    //var elapsedTime = Date.now() - startTime;
+    //document.getElementById("timer").innerHTML = (elapsedTime / 1000).toFixed(3);
+
 };
 
 document.body.appendChild(renderer.domElement);

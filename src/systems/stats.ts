@@ -45,6 +45,15 @@ export default class StatsSystem implements ISystem {
         }
     }
 
+     useStamina(entity: Entity, stamina: number, dt: number) {
+        const stats = entity.userData as IStatsData;
+        stats.stamina -= stamina * dt;
+        if (stats.stamina < 0) {
+            stats.stamina = 0;
+            stats.dead = true;
+        }
+    }
+
     update(dt: number) {
         this.relativeEntities.forEach((e) => {
             const stats = e.userData as IStatsData;

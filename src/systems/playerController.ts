@@ -104,7 +104,7 @@ export default class PlayerControllerSystem implements ISystem {
 
             if (keys.w || keys.s || keys.d || keys.a) {
                 const statSystem = SystemManagerInst.getSystemByName("StatsSystem") as StatsSystem;
-                statSystem.dealDamage(entity, 50, dt);
+                statSystem.useStamina(entity, 50, dt);
             }
 
             let direction = this.getControllerDirection();
