@@ -21,12 +21,10 @@ export default class StatsSystem implements ISystem {
 
     add(entity: Entity) {
         this.relativeEntities[entity.id] = entity;
-        console.log("added");
     }
 
     remove(entity: Entity) {
         this.relativeEntities[entity.id] = undefined;
-        console.log("removed");
     }
 
     clamp(current: number, min: number, max: number): number {
@@ -36,10 +34,8 @@ export default class StatsSystem implements ISystem {
     }
 
     update(dt: number) {
-        console.log("update");
         this.relativeEntities.forEach((e) => {
             const stats = e.userData as IStatsData;
-            console.log(stats.health);
             const alive = !stats.dead; //aka not dead
             if (alive) {
                 stats.health += stats.healthRegen * dt;
