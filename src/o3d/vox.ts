@@ -1,9 +1,7 @@
 import * as path from 'path';
 import * as THREE from 'three';
-
-declare const vox: any;
-
-const parser = new vox.Parser();
+import { MeshBuilder } from '../engine/vox';
+import { Get } from '../engine/assets';
 
 export interface IAnimation {
     speed: number;
@@ -11,12 +9,12 @@ export interface IAnimation {
 }
 
 export interface IVoxData {
-    animation: {[key: string]: IAnimation};
+    animation: { [key: string]: IAnimation };
     size?: number;
     rotation?: number[];
     position?: number[];
     default: string;
-    tesselation?: number;
+    jitter?: number;
 }
 
 export default class VoxModel extends THREE.Object3D {
@@ -27,25 +25,35 @@ export default class VoxModel extends THREE.Object3D {
     timeout: number;
     voxHolder: THREE.Object3D;
 
-    constructor(voxData: IVoxData) {
+    constructor(voxData: IVoxData | Promise<IVoxData>) {
         super();
+        this.setVoxData(voxData);
+    }
 
-        this.data = voxData;
+    async setVoxData(voxData: IVoxData | Promise<IVoxData>) {
+        let data: IVoxData;
+        if(voxData instanceof Promise) {
+            data = await voxData;
+        } else {
+            data = voxData;
+        }
+
+        this.data = data;
         const dir = './vox';
         this.animations = {};
-        const tesselation = voxData.tesselation ? voxData.tesselation : 0;
-        
+        const jitter = data.jitter ? data.jitter : 0;
+
         Object.keys(this.data.animation).forEach(key => {
             const anim: IAnimation = this.data.animation[key];
 
             this.animations[key] = {
                 ...anim,
-                vox: anim.vox.map(file => parser.parse(path.join(dir, file)).then(voxelBin => {
-                    const builder = new vox.MeshBuilder(voxelBin, { 
-                        voxelSize: voxData.size, 
-                        vertexColor: true, 
+                vox: anim.vox.map(file => Get(path.join(dir, file)).then(voxelBin => {
+                    const builder = new MeshBuilder(voxelBin, {
+                        voxelSize: data.size,
+                        vertexColor: true,
                         optimizeFaces: false,
-                        tesselation
+                        jitter
                     });
                     const mesh = builder.createMesh();
                     mesh.castShadow = true;
@@ -55,18 +63,18 @@ export default class VoxModel extends THREE.Object3D {
             };
         });
         this.voxHolder = new THREE.Object3D();
-        if(voxData.position)
-            this.voxHolder.position.fromArray(voxData.position);
+        if (data.position)
+            this.voxHolder.position.fromArray(data.position);
 
-        if(voxData.rotation)
-            this.voxHolder.rotation.fromArray(voxData.rotation.map(x => x * Math.PI/180));
+        if (data.rotation)
+            this.voxHolder.rotation.fromArray(data.rotation.map(x => x * Math.PI / 180));
 
         this.add(this.voxHolder);
         this.play(this.data.default);
     }
 
     play(animation: string) {
-        if(this.timeout) clearInterval(this.timeout);
+        if (this.timeout) clearInterval(this.timeout);
 
         this.current = animation;
         this.frame = 0;
@@ -79,7 +87,7 @@ export default class VoxModel extends THREE.Object3D {
     }
 
     async step() {
-        if(this.voxHolder.children[0])
+        if (this.voxHolder.children[0])
             this.voxHolder.remove(this.voxHolder.children[0]);
 
         const voxList = this.animations[this.current].vox;

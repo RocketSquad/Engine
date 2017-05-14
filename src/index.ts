@@ -10,7 +10,7 @@ const renderer = new THREE.WebGLRenderer({ antialias: true });
 
 camera.position.set(0, 2, 0);
 
-(<IWindowGame>window).camera = camera;
+(window as IWindowGame).camera = camera;
 
 (() => {
     const throttle = (type: string, name: string, obj?: any) => {

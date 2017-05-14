@@ -28,7 +28,16 @@
             "ordered-imports": [
                 false
             ],
-            "no-var-requires": false
+            "no-var-requires": false,
+            "variable-name": [
+                false
+            ],
+            "triple-equals": [
+                false
+            ],
+            "one-variable-per-declaration": [
+                false
+            ]
         },
         "rulesDirectory": []
     }

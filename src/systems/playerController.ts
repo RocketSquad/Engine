@@ -10,9 +10,9 @@ interface IWindowGame extends Window {
 }
 
 interface ICameraData {
-    cameraLookAt: number[],
-    cameraOffset: number[],
-    cameraLerp,
+    cameraLookAt: number[];
+    cameraOffset: number[];
+    cameraLerp;
 }
 
 export default class PlayerControllerSystem implements ISystem {
