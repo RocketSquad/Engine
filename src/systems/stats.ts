@@ -2,7 +2,7 @@ import { ISystem } from '../systemManager';
 import Entity from '../entity';
 import * as THREE from "three";
 
-interface IStatsData {
+export interface IStatsData {
     health: number;
     stamina: number;
     healthRegen: number;
@@ -21,6 +21,9 @@ export default class StatsSystem implements ISystem {
 
     add(entity: Entity) {
         this.relativeEntities[entity.id] = entity;
+        const stats = entity.userData as IStatsData;
+        stats.health = stats.maxHealth;
+        stats.stamina = stats.maxStamina;
     }
 
     remove(entity: Entity) {

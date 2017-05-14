@@ -2,8 +2,8 @@ import * as THREE from 'three';
 import * as uuid from 'uuid';
 
 export interface ITransformData {
-    position: number[]
-} 
+    position: number[];
+}
 
 export interface IVoxData {
     file: string;
@@ -20,7 +20,7 @@ interface IEntityData {
 }
 
 export default class Entity extends THREE.Object3D {
-    
+
     constructor(data: IEntityData) {
         super();
         this.userData = data;

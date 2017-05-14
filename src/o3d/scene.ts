@@ -106,12 +106,13 @@ export default class Scene extends THREE.Scene {
         this.add(light);
 
         (async () => {
-            const ent = new Entity({
+            const ent = new Entity( {
                 vox: DataFiles[RandomTribe()],
                 controller: {moveSpeed: 10},
             });
 
-            Object.assign(ent, await Get('/content/character/character.toml'));
+            Object.assign(ent, await Get('/content/controller/character.toml'));
+            SystemManagerInst.getSystemByName("PlayerControllerSystem").setEntityAsLocalPlayer(ent);
             this.add(ent);
         }) ();
 

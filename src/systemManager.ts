@@ -10,32 +10,36 @@ export interface ISystem {
 }
 
 export class SystemManager {
-    systems: ISystem[];
+    systems: {[key: string]: ISystem};
 
     constructor() {
-        this.systems = [];
+        this.systems = {};
         for(let sysType in SystemConstructorList) {
             console.log(sysType);
-            this.systems.push(SystemConstructorList[sysType]());
+            this.systems[sysType] = SystemConstructorList[sysType]();
         }
     }
 
+    getSystemByName(sysType: string): any {
+        return this.systems[sysType];
+    }
+
     addEntity(entity: Entity) {
-        this.systems.forEach(sys => {
-            sys.add(entity);
-        });
+        for(let prop in this.systems) {
+            this.systems[prop].add(entity);
+        }
     }
 
     removeEntity(entity: Entity) {
-        this.systems.forEach(sys => {
-            sys.remove(entity);
-        });
+        for(let prop in this.systems) {
+            this.systems[prop].remove(entity);
+        }
     }
 
     update(dt: number) {
-        this.systems.forEach(sys => {
-            sys.update(dt);
-        });
+        for(let prop in this.systems) {
+            this.systems[prop].update(dt);
+        }
     }
 }
 
