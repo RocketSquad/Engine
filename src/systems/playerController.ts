@@ -1,9 +1,9 @@
-import { ISystem } from '../systemManager';
+import { ISystem, SystemManagerInst } from '../systemManager';
 import Entity, { IControllerData } from '../entity';
 import * as THREE from 'three';
 import VoxModel from '../o3d/vox';
 import { keys } from '../engine/input';
-import { IStatsData } from './stats';
+import StatsSystem, { IStatsData } from './stats';
 
 interface IWindowGame extends Window {
     camera: THREE.Camera;
@@ -90,11 +90,8 @@ export default class PlayerControllerSystem implements ISystem {
             }
 
             if (keys.w) {
-                stats.health -= 50 * dt;
-                if (stats.health < 0) {
-                    //.killThePlayer();
-                    stats.health = 0;
-                }
+                const statSystem = SystemManagerInst.getSystemByName("StatsSystem") as StatsSystem;
+                statSystem.dealDamage(entity, 50, dt);
             }
 
             const direction = this.getControllerDirection();

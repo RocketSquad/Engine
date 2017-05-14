@@ -31,11 +31,20 @@ export default class StatsSystem implements ISystem {
         const stats = entity.userData as IStatsData;
     }
 
+    dealDamage(entity: Entity, damage: number, dt: number) {
+        const stats = entity.userData as IStatsData;
+        stats.health -= damage * dt;
+        if (stats.health < 0) {
+            stats.health = 0;
+            stats.dead = true;
+        }
+    }
+
     update(dt: number) {
         this.relativeEntities.forEach((e) => {
             const stats = e.userData as IStatsData;
-         //   console.log(stats.health);
-            const alive = !stats.dead; //aka not dead
+            // console.log(stats.health);
+            const alive = !stats.dead; // aka not dead
             if (alive) {
                 stats.health += stats.healthRegen * dt;
                 stats.stamina += stats.staminaRegen * dt;
