@@ -20,7 +20,6 @@ interface IEntityData {
 }
 
 export default class Entity extends THREE.Object3D {
-
     constructor(data: IEntityData) {
         super();
         this.userData = data;

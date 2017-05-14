@@ -7,11 +7,14 @@ import * as uuid from 'uuid';
 import {SystemManagerInst} from '../systemManager';
 
 interface IInstanceData extends IVoxData {
-    file: 'character';
+    file: string;
+    def: string;
 }
+
 
 interface ISceneData {
     entity?: IInstanceData[];
+    def?: {[key: string]: IInstanceData};
 }
 
 interface IVec3 {
@@ -97,6 +100,7 @@ export default class Scene extends THREE.Scene {
     async setupScene(scenePromise: Promise<ISceneData>) {
         const sceneData = await scenePromise;
         sceneData.entity = sceneData.entity || [];
+        sceneData.def = sceneData.def || {};
         current = this;
         this.uuid = uuid.v4();
         this.players = {};
@@ -118,10 +122,21 @@ export default class Scene extends THREE.Scene {
         }) ();
 
         sceneData.entity.forEach(async voxData => {
-            let data = {};
+            const data = {};
             if (voxData.file) {
-                data = await Get(`/${voxData.file}`);
+                Object.assign(data, await Get(`/${voxData.file}`));
             }
+
+            if (voxData.def && sceneData.def[voxData.def]) {
+                const defData = sceneData.def[voxData.def];
+
+                if(defData.file) {
+                    Object.assign(data, await Get(`/${defData.file}`));
+                }
+
+                Object.assign(data, defData);
+            }
+
             Object.assign(data, voxData);
             this.add(new Vox(data as IVoxData));
         });

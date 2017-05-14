@@ -1,50 +1,56 @@
-[[entity]]
+[def.tree]
     file = 'content/tiles/tree.toml'
+
+[def.wall]
+    file = 'content/tiles/wall.toml'
+
+[[entity]]
+    def = 'tree'
     position = [0, 0, -10]
 [[entity]]
-    file = 'content/tiles/tree.toml'
+    def = 'tree'
     position = [-10, 0, -6]
 [[entity]]
-    file = 'content/tiles/tree.toml'
+    def = 'tree'
     position = [-4, 0, 5]
 [[entity]]
-    file = 'content/tiles/tree.toml'
+    def = 'tree'
     position = [-10, 0, 9]
 [[entity]]
-    file = 'content/tiles/tree.toml'
+    def = 'tree'
     position = [-5, 0, 0]
 [[entity]]
-    file = 'content/tiles/tree.toml'
+    def = 'tree'
     position = [4, 0, 1]
 [[entity]]
-    file = 'content/tiles/tree.toml'
+    def = 'tree'
     position = [5, 0, -6]
 
 [[entity]]
-    file = 'content/tiles/wall.toml'
+    def = 'wall'
     position = [0, 0, 0]
 
 [[entity]]
-    file = 'content/tiles/wall.toml'
+    def = 'wall'
     position = [0, 0, 5]
 
 [[entity]]
-    file = 'content/tiles/wall.toml'
+    def = 'wall'
     position = [2.5, 0.0, 2.5]
     rotation = [0, 90, 0]
 
 [[entity]]
-    file = 'content/tiles/wall.toml'
+    def = 'wall'
     position = [-2.5, 0.0, 2.5]
     rotation = [0, 90, 0]
 
 [[entity]]
-    file = 'content/tiles/wall.toml'
+    def = 'wall'
     position = [0.0, 0.5, 0.0]
     rotation = [90, 0, 0]
 
 [[entity]]
-    file = 'content/tiles/wall.toml'
+    def = 'wall'
     position = [0.0, 0.5, 2.5]
     rotation = [90, 0, 0]
 
