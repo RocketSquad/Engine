@@ -1,4 +1,4 @@
-import { ISystem, SystemManagerInst } from '../systemManager';
+import { ISystem, SystemManagerInst, addMissingDefaults } from '../systemManager';
 import Entity, { IControllerData } from '../entity';
 import {Get} from '../engine/assets';
 import * as THREE from 'three';
@@ -20,6 +20,29 @@ interface ICameraData {
     cameraLerp;
 }
 
+interface IControllerMetaData {
+    type: string;
+}
+
+interface IController {
+    initialize(ent: Entity);
+    update(dt: number);
+}
+
+// [TODO] add controller types, like player controller and AI controller
+// [TODO] read in which controller to give a player via toml
+// [TODO] support multiple USB controllers on the same client
+// [TODO] support input axis and events in input lib
+class PlayerController implements IController {
+    initialize(ent: Entity) {
+        return;
+    }
+
+    update(dt: number) {
+        return;
+    }
+}
+
 let soundFired = false;
 const sound = new Howl.Howl({
     src: ['./sfx/sacktap.wav'],
@@ -39,6 +62,7 @@ export default class PlayerControllerSystem implements ISystem {
     cooldown: number;
 
     constructor() {
+        // [TODO] add system init TOML file
         this.relativeEntities = [];
         this.clock = new THREE.Clock();
         this.cooldown = Math.floor(Math.random() * 10);
@@ -54,9 +78,23 @@ export default class PlayerControllerSystem implements ISystem {
             entity.position.set(0, 0, 7);
             this.relativeEntities[entity.id] = entity;
             this.target = entity;
-            entity.userData.controller.isLocalPlayer = false;
-            entity.userData.controller.minInputLength = 0.3;
-            entity.userData.controller.minRotAngle = 0.1;
+
+            switch(entity.userData.controller.type) {
+                case "player":
+                    // [TODO] spawn player controller for this entity
+                    break;
+                case "ai":
+                default:
+                    // [TODO] spawn ai controller for this entity
+            }
+
+            const defaults = {
+                isLocalPlayer: false,
+                minInputLength: 0.3,
+                minRotAngle: 0.1,
+            };
+
+            addMissingDefaults(entity.userData.controller, defaults);
         }
     }
 
