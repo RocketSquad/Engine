@@ -105,8 +105,8 @@ export default class Scene extends THREE.Scene {
         this.uuid = uuid.v4();
         this.players = {};
 
-        this.add(new THREE.AmbientLight(0xFFFFFF, 0.55));
-        const light = new THREE.DirectionalLight(0xFFFFFF, 0.5);
+        this.add(new THREE.AmbientLight(0xFFFFFF, 0.80));
+        const light = new THREE.DirectionalLight(0xFF9999, 0.5);
         light.position.set(0, 5, 5);
         this.add(light);
 
@@ -262,8 +262,8 @@ export default class Scene extends THREE.Scene {
             Object.keys(this.waterMap[xkey]).forEach(ykey => {
                 const positionOffset =
                     (
-                        Math.sin(time * 0.0005 + parseInt(xkey, 10) * 0.2)
-                        + Math.cos(time * 0.0005 + parseInt(ykey, 10) * 0.8) * 0.1
+                        Math.sin(time * 0.0005 + parseInt(xkey, 10) * 0.5) * 0.5
+                        + Math.cos(time * 0.0005 + parseInt(ykey, 10) * 0.8) * 0.05
                     )
                     * 0.5 - 0.05;
                 const tile = this.waterMap[xkey][ykey];

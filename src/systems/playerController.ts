@@ -46,7 +46,7 @@ class PlayerController implements IController {
 let soundFired = false;
 const sound = new Howl.Howl({
     src: ['./sfx/sacktap.wav'],
-    volume: 0.8,
+    volume: 0.4,
     onend: () => {
         soundFired = false;
     },
@@ -214,10 +214,14 @@ export default class PlayerControllerSystem implements ISystem {
         }
 
         const phrases = [
+            'I like pina coladas, getting lost inthe rain',
+            'Jurassic Fallback 2',
+            'More money, more',
+            'See you later alligator, work that tail',
             'I like pinya coladas',
             'Those moves are Jurra sick',
             'Let me show you my Cambrian explosion',
-            'See you later alligator, work that tail',
+            'Jurassic Park that ass over here',
             'Grind that pole until you are dinosaur'
         ];
 
@@ -237,7 +241,6 @@ export default class PlayerControllerSystem implements ISystem {
                 const coin = new Entity( {
                     vox: data,
                 });
-                console.log('made coin!');
 
                 current.add(coin);
                 coin.position.copy(
