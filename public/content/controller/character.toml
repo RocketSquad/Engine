@@ -7,5 +7,6 @@ staminaRegen = 20
 maxStamina = 50
 
 [controller]
-    moveSpeed = 0
+    type="player"
+    moveSpeed = 5
     rotSpeed = 420
