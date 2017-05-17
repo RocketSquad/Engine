@@ -2,6 +2,14 @@ import Entity from "./entity";
 import {SystemConstructorList} from "./systems";
 const uuid = require('uuid');
 
+export function addMissingDefaults(target: {}, defaults: {}) {
+    for(const prop in defaults) {
+        if(defaults[prop] && !target[prop]) {
+            target[prop] = defaults[prop];
+        }
+    }
+}
+
 export interface ISystem {
     add(entity: Entity);
     remove(entity: Entity);

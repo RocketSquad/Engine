@@ -1,4 +1,4 @@
-import { ISystem, SystemManagerInst } from '../systemManager';
+import { ISystem, SystemManagerInst, addMissingDefaults } from '../systemManager';
 import Entity, { IControllerData } from '../entity';
 import {Get} from '../engine/assets';
 import * as THREE from 'three';
@@ -20,53 +20,24 @@ interface ICameraData {
     cameraLerp;
 }
 
-let soundFired = false;
-const sound = new Howl.Howl({
-    src: ['./sfx/sacktap.wav'],
-    volume: 0.4,
-    onend: () => {
-        soundFired = false;
-    },
-});
+interface IControllerMetaData {
+    type: string;
+}
 
-const coinGet = Get('./content/ammo/coin.toml');
+interface IController {
+    initialize(ent: Entity);
+    update(dt: number);
+}
 
-export default class PlayerControllerSystem implements ISystem {
-    relativeEntities: Entity[];
-    target: Entity;
-    clock: THREE.Clock;
-    data: ICameraData;
-    cooldown: number;
+// [TODO] support an AI controller and a NetReplicated controller (for remote AI or players)
+// [TODO] support multiple USB controllers on the same client
+// [TODO] support input axis and events in input lib
+class PlayerController implements IController {
 
-    constructor() {
-        this.relativeEntities = [];
-        this.clock = new THREE.Clock();
-        this.cooldown = Math.floor(Math.random() * 10);
-        this.data = {
-            cameraLookAt: [0, 2, -1],
-            cameraOffset: [0, 4, 3],
-            cameraLerp: 1,
-        };
-    }
+    entity: Entity;
 
-    add(entity: Entity) {
-        if (entity.userData.controller !== undefined) {
-            entity.position.set(0, 0, 7);
-            this.relativeEntities[entity.id] = entity;
-            this.target = entity;
-            entity.userData.controller.isLocalPlayer = false;
-            entity.userData.controller.minInputLength = 0.3;
-            entity.userData.controller.minRotAngle = 0.1;
-        }
-    }
-
-    remove(entity: Entity) {
-        this.relativeEntities[entity.id] = undefined;
-    }
-
-    setEntityAsLocalPlayer(entity: Entity) {
-        this.target = entity;
-        entity.userData.controller.isLocalPlayer = true;
+    constructor(entity: Entity) {
+        this.entity = entity;
     }
 
     getControllerInput(): THREE.Vector3 {
@@ -112,58 +83,128 @@ export default class PlayerControllerSystem implements ISystem {
         return new THREE.Vector3(turn, 0, -forward);
     }
 
+    initialize(ent: Entity) {
+        return;
+    }
+
+    update(dt: number) {
+        const controller = this.entity.userData.controller;
+        const input = this.getControllerInput();
+
+        let direction = this.getControllerDirection();
+
+        // Use input for direction if no direction is given
+        if(direction.lengthSq() <= controller.minInputLength * controller.minInputLength) {
+            direction = input;
+        }
+
+        // Calculate and handle rotation
+        if(direction.lengthSq() > controller.minInputLength * controller.minInputLength) {
+            const targetRotationAngle = new THREE.Euler(0, Math.atan2(direction.x, direction.z), 0);
+            const currentRotationAngle = new THREE.Euler().copy(this.entity.rotation);
+
+            let deltaAngle = RMath.SmallestAngleBetweenAngles(targetRotationAngle.y, currentRotationAngle.y);
+            deltaAngle *= RMath.radToDegree;
+
+            let rotDir;
+            if(Math.abs(deltaAngle) > controller.minRotAngle) {
+                rotDir = deltaAngle / Math.abs(deltaAngle);
+            } else {
+                rotDir = 0;
+            }
+
+            const currentRot = currentRotationAngle.y * RMath.radToDegree;
+            const nextDeltaRot = rotDir * Math.min(dt * controller.rotSpeed, Math.abs(deltaAngle));
+            const nextAngle = ((currentRot + nextDeltaRot) % 360 + 360) % 360;
+
+            currentRotationAngle.y = Math.min(nextAngle * RMath.degreeToRad);
+
+            this.entity.rotation.copy(currentRotationAngle);
+        }
+
+        this.entity.position.add(input.multiplyScalar(this.entity.userData.controller.moveSpeed * dt));
+    }
+}
+
+let soundFired = false;
+const sound = new Howl.Howl({
+    src: ['./sfx/sacktap.wav'],
+    volume: 0.4,
+    onend: () => {
+        soundFired = false;
+    },
+});
+
+const coinGet = Get('./content/ammo/coin.toml');
+
+export default class PlayerControllerSystem implements ISystem {
+    relativeEntities: {[key: string]: Entity};
+    controllers: {[key: string]: IController};
+    target: Entity;
+    clock: THREE.Clock;
+    data: ICameraData;
+    cooldown: number;
+
+    constructor() {
+        // [TODO] add system init TOML file
+        // [TODO] decide who owns the camera, and how we take control of it or pass control around
+        this.relativeEntities = {};
+        this.controllers = {};
+        this.clock = new THREE.Clock();
+        this.cooldown = Math.floor(Math.random() * 10);
+        this.data = {
+            cameraLookAt: [0, 2, -1],
+            cameraOffset: [0, 4, 3],
+            cameraLerp: 1,
+        };
+    }
+
+    add(entity: Entity) {
+        if (entity.userData.controller !== undefined) {
+            entity.position.set(0, 0, 7);
+            this.relativeEntities[entity.id] = entity;
+            this.target = entity;
+
+            switch(entity.userData.controller.type) {
+                case "player":
+                    this.controllers[entity.id] = new PlayerController(entity);
+                    break;
+                case "netReplicated":
+                case "ai":
+                default:
+                    // [TODO] spawn ai controller for this entity
+            }
+
+            const defaults = {
+                isLocalPlayer: false,
+                minInputLength: 0.3,
+                minRotAngle: 0.1,
+            };
+
+            addMissingDefaults(entity.userData.controller, defaults);
+        }
+    }
+
+    remove(entity: Entity) {
+        this.relativeEntities[entity.id] = undefined;
+    }
+
+    setEntityAsLocalPlayer(entity: Entity) {
+        this.target = entity;
+        entity.userData.controller.isLocalPlayer = true;
+    }
+
     update(dt: number) {
         const delta = this.clock.getDelta();
 
-        this.relativeEntities.forEach(entity => {
-            const controller = entity.userData.controller;
-            let input = this.getControllerInput();
-
-            if (keys.w || keys.s || keys.d || keys.a) {
-                const statSystem = SystemManagerInst.getSystemByName("StatsSystem") as StatsSystem;
-                statSystem.useStamina(entity, 50, dt);
+        // Update the variety of controllers this system manages
+        for(const key in this.controllers) {
+            if(this.controllers[key]) {
+                this.controllers[key].update(dt);
             }
+        }
 
-            let direction = this.getControllerDirection();
-            const stats = entity.userData as IStatsData;
-
-            if (stats.dead) {
-                direction = new THREE.Vector3(0, 0, 0);
-                input = new THREE.Vector3(0, 0, 0);
-            }
-
-            entity.position.add(input.multiplyScalar(entity.userData.controller.moveSpeed * dt));
-
-            // Use input for direction if no direction is given
-            if(direction.lengthSq() <= controller.minInputLength * controller.minInputLength) {
-                direction = input;
-            }
-
-            // Calculate and handle rotation
-            if(direction.lengthSq() > controller.minInputLength * controller.minInputLength) {
-                const targetRotationAngle = new THREE.Euler(0, Math.atan2(direction.x, direction.z), 0);
-                const currentRotationAngle = new THREE.Euler().copy(entity.rotation);
-
-                let deltaAngle = RMath.SmallestAngleBetweenAngles(targetRotationAngle.y, currentRotationAngle.y);
-                deltaAngle *= RMath.radToDegree;
-
-                let rotDir;
-                if(Math.abs(deltaAngle) > controller.minRotAngle) {
-                    rotDir = deltaAngle / Math.abs(deltaAngle);
-                } else {
-                    rotDir = 0;
-                }
-
-                const currentRot = currentRotationAngle.y * RMath.radToDegree;
-                const nextDeltaRot = rotDir * Math.min(dt * controller.rotSpeed, Math.abs(deltaAngle));
-                const nextAngle = ((currentRot + nextDeltaRot) % 360 + 360) % 360;
-
-                currentRotationAngle.y = Math.min(nextAngle * RMath.degreeToRad);
-
-                entity.rotation.copy(currentRotationAngle);
-            }
-        });
-
+        // Update the camera to follow the target character
         if ((window as IWindowGame).camera && this.target) {
             const cam = (window as IWindowGame).camera;
             const axis = new THREE.Vector3().fromArray(this.data.cameraLookAt);
@@ -175,6 +216,8 @@ export default class PlayerControllerSystem implements ISystem {
             cam.lookAt(dstPosition);
         }
 
+
+        // Vital JF2 mechanics
         const phrases = [
             'I like pina coladas, getting lost inthe rain',
             'Jurassic Fallback 2',
