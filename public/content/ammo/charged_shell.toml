@@ -1,5 +1,5 @@
 default = "idle"
-size = 0.02
+size = 0.06
 
 [animation.idle]
     speed = 1000

@@ -1,9 +1,0 @@
-version: "3"
-services:
-  webrtc-server:
-    image: node:alpine
-    cmd: npm install webrtc-server & npm start
-    expose: 
-      - "8080:8080"
-  
-  

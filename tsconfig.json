@@ -1,6 +1,6 @@
 {
     "compilerOptions": {
-        "outDir": "./dist/",
+        "outDir": "./gen/",
         "sourceMap": true,
         "lib": ["es2017", "dom"],
         "module": "commonjs",
@@ -9,6 +9,6 @@
         "allowJs": true
     },
     "include": [
-        "./src/**/*"
+        "src/**/*"
     ]
 }

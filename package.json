@@ -2,19 +2,21 @@
   "name": "rocketsquad-engine",
   "version": "1.0.0",
   "description": "",
-  "main": "webpack.config.js",
+  "main": "gen/server.js",
   "dependencies": {
     "binary-loader": "0.0.1",
     "express": "^4.15.2",
+    "gaze": "^1.1.2",
     "howler": "^2.0.3",
+    "nodemon": "^1.11.0",
     "physijs": "0.0.4",
     "react": "^15.5.4",
     "react-dom": "^15.5.4",
     "rtc-quickconnect": "^5.8.0",
     "tape": "^4.6.3",
-    "three": "^0.85.0",
     "toml": "^2.3.2",
     "uuid": "^3.0.1",
+    "winston": "^2.3.1",
     "ws": "^2.3.1"
   },
   "devDependencies": {
@@ -28,15 +30,14 @@
     "awesome-typescript-loader": "^3.1.2",
     "node-static": "^0.7.9",
     "source-map-loader": "^0.2.1",
+    "ts-node": "^3.0.2",
     "tslint": "^5.1.0",
     "typescript": "^2.2.2",
-    "ts-node": "^3.0.2",
     "webpack": "^2.4.1",
     "webpack-dev-server": "^2.4.2"
   },
   "scripts": {
-    "watch": "webpack --watch",
-    "compile": "webpack --optimize-minimize",
+    "watch": "node task webpackWatch compileWatch",
     "serve": "webpack-dev-server --content-base public",
     "test": "ts-node node_modules/tape/bin/tape src/**/*.test.ts"
   },
