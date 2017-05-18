@@ -2,6 +2,7 @@ default = "idle"
 size = 0.20
 jitter = 0
 
+
 [animation.idle]
     speed = 1000
     vox = [

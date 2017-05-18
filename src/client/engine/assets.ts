@@ -1,11 +1,16 @@
 // Load Vox/TOML files from a file
 import {Parse, MeshBuilder} from './vox';
-import {Send, On, IMessage} from './socket';
+import {Send, On as SocketOn, IMessage} from './socket';
 
 const b64 = require('base64-js');
 const toml = require('toml');
 const ASSETS = {};
-const Memoize = (file: string, action: any): Promise<any> => ASSETS[file] ? ASSETS[file] : ASSETS[file] = action(file);
+const Memoize = (file: string, action: any): Promise<any> =>
+    ASSETS[file] ? ASSETS[file] : Set(file, action(file));
+
+
+type WatcherHandler = (payload: any, path?: string) => void;
+const Watchers: {[key: string]: WatcherHandler[]} = {};
 
 const FromBase64 = (base64: string) => {
     return b64.toByteArray(base64);
@@ -16,20 +21,48 @@ const postProcess = {
     toml: (data: Response) => data.text().then(toml.parse)
 };
 
-On('asset', (msg: IMessage) => {
-    let result = msg.payload;
+const Set = (file: string, dataPromise: Promise<any>) => {
+    ASSETS[file] = dataPromise;
+    const handlers = Watchers[file] || [];
 
-    if(msg.topic.indexOf('.vox') !== -1) {
-        result = FromBase64(msg.payload);
+    dataPromise.then((data) => {
+        if(handlers) {
+            handlers.forEach(fn => fn(data, file));
+        }
+    });
+
+    return dataPromise;
+};
+
+SocketOn('asset', (msg: IMessage) => {
+    const result = msg.payload;
+    if(result.path.indexOf('.vox') !== -1) {
+        result.data = Parse(FromBase64(result.data));
+    } else if (result.path.indexOf('.toml') !== -1) {
+        result.data = toml.parse(result.data);
     } else {
-        console.log(msg);
+        console.log('Unhandled asset', msg);
     }
 
-    ASSETS[msg.payload.path] = result;e
+    Set(result.path, Promise.resolve(result.data));
 });
 
-export const When = (file: string, callback: (data: any) => void) => {
-    
+export const Off = (file: string, callback: WatcherHandler) => {
+    const handlers = Watchers[file] || [];
+    const idx = handlers.indexOf(callback);
+
+    if(idx !== -1) {
+        Watchers[file] = handlers.splice(idx, 1);
+    }
+
+    return idx !== -1;
+};
+
+// Need a way to unsub
+export const On = (file: string, callback: WatcherHandler) => {
+    const handlers = Watchers[file] || [];
+    handlers.push(callback);
+    Watchers[file] = handlers;
 };
 
 export const Get = (file: string) => Memoize(file, () => {

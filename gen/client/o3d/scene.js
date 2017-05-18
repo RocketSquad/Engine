@@ -51,7 +51,7 @@ var assets_1 = require("../engine/assets");
 var entity_1 = require("../entity");
 var uuid = require("uuid");
 var systemManager_1 = require("../systemManager");
-var DataFiles = assets_1.Gets({
+var DataFiles = {
     character: '/content/character/character.toml',
     wall: '/content/tiles/wall.toml',
     sword: '/content/character/sword.toml',
@@ -63,7 +63,7 @@ var DataFiles = assets_1.Gets({
     water: '/content/tiles/water.toml',
     tree: '/content/tiles/tree.toml',
     water2: '/content/tiles/water2.toml'
-});
+};
 var tribes = [
     'character',
     'sword',
@@ -214,7 +214,6 @@ var Scene = (function (_super) {
                             //     return;
                             // }
                         };
-                        this.createTiles();
                         this.tick = this.tick.bind(this);
                         this.tick();
                         return [2 /*return*/];
@@ -222,88 +221,11 @@ var Scene = (function (_super) {
             });
         });
     };
-    Scene.prototype.createTiles = function () {
-        return __awaiter(this, void 0, void 0, function () {
-            var grassTile, dirtTile, waterTile, waterTile2, tileModel, dirtModel, waterModel, waterModel2, x, y, doWater, tile, tileD, positionOffset;
-            return __generator(this, function (_a) {
-                switch (_a.label) {
-                    case 0:
-                        this.grassMap = {};
-                        this.waterMap = {};
-                        grassTile = new vox_1.default(DataFiles.grass);
-                        dirtTile = new vox_1.default(DataFiles.dirt);
-                        waterTile = new vox_1.default(DataFiles.water);
-                        waterTile2 = new vox_1.default(DataFiles.water2);
-                        return [4 /*yield*/, DataFiles.all];
-                    case 1:
-                        _a.sent();
-                        return [4 /*yield*/, grassTile.animations.idle.vox[0]];
-                    case 2:
-                        tileModel = _a.sent();
-                        return [4 /*yield*/, dirtTile.animations.idle.vox[0]];
-                    case 3:
-                        dirtModel = _a.sent();
-                        return [4 /*yield*/, waterTile.animations.idle.vox[0]];
-                    case 4:
-                        waterModel = _a.sent();
-                        return [4 /*yield*/, waterTile2.animations.idle.vox[0]];
-                    case 5:
-                        waterModel2 = _a.sent();
-                        for (x = -20; x < 20; x++) {
-                            this.waterMap[x] = {};
-                            for (y = -5; y < 20; y++) {
-                                doWater = true;
-                                tile = doWater ? waterModel.clone() : tileModel.clone();
-                                tileD = doWater ? waterModel2.clone() : dirtModel.clone();
-                                tile.position.set(x, 0, y);
-                                tileD.position.set(x, 0, y);
-                                if (doWater) {
-                                    this.waterMap[x][y] = tile;
-                                    tile.material.opacity = 0.4;
-                                    tile.material.transparent = true;
-                                    tileD.position.set(x + 30, 0, y + 2);
-                                    tileD.material.opacity = 0.6;
-                                    tileD.material.transparent = true;
-                                    tile.origy = tile.position.y;
-                                }
-                                else {
-                                    positionOffset = (Math.sin(x * 0.2)
-                                        + Math.cos(y * 0.8) * 0.1) * 0.5 - 0.05;
-                                    tile.position.y += positionOffset;
-                                    tileD.position.y += positionOffset;
-                                }
-                                tile.rotateY(THREE.Math.degToRad(Math.round(Math.random() * 3) * 90));
-                                tileD.rotateY(THREE.Math.degToRad(Math.round(Math.random() * 3) * 90));
-                                if (!doWater && Math.abs(x) % 20 < 4 && Math.abs(y) % 20 < 4) {
-                                    this.add(tileD);
-                                }
-                                else {
-                                    this.add(tile);
-                                    //this.add(tileD);
-                                }
-                            }
-                        }
-                        return [2 /*return*/];
-                }
-            });
-        });
-    };
     Scene.prototype.tick = function () {
-        var _this = this;
         requestAnimationFrame(this.tick);
         var time = Date.now();
         var delta = this.clock.getDelta();
         systemManager_1.SystemManagerInst.update(delta);
-        Object.keys(this.waterMap).forEach(function (xkey) {
-            Object.keys(_this.waterMap[xkey]).forEach(function (ykey) {
-                var positionOffset = (Math.sin(time * 0.0005 + parseInt(xkey, 10) * 0.5) * 0.5
-                    + Math.cos(time * 0.0005 + parseInt(ykey, 10) * 0.8) * 0.05)
-                    * 0.5 - 0.05;
-                var tile = _this.waterMap[xkey][ykey];
-                tile.position.y = tile.origy + positionOffset;
-                // this.waterMap[xkey][ykey].rotateY(THREE.Math.degToRad(Math.round(Math.random() * 3) * 90));
-            });
-        });
     };
     return Scene;
 }(THREE.Scene));

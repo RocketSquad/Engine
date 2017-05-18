@@ -57,20 +57,39 @@ var path = require("path");
 var THREE = require("three");
 var vox_1 = require("../engine/vox");
 var assets_1 = require("../engine/assets");
+var BuildVoxMesh = function (voxelBin, data) {
+    var builder = new vox_1.MeshBuilder(voxelBin, {
+        voxelSize: data.size,
+        vertexColor: true,
+        optimizeFaces: false,
+        jitter: data.jitter
+    });
+    var mesh = builder.createMesh();
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    return mesh;
+};
 var VoxModel = (function (_super) {
     __extends(VoxModel, _super);
     function VoxModel(voxData) {
         var _this = _super.call(this) || this;
-        _this.setVoxData(voxData);
+        if (typeof voxData === 'string') {
+            assets_1.On(voxData, _this.setVoxData.bind(_this));
+            assets_1.Get(voxData);
+        }
+        else {
+            _this.setVoxData(voxData);
+        }
         return _this;
     }
     VoxModel.prototype.setVoxData = function (voxData) {
         return __awaiter(this, void 0, void 0, function () {
             var _this = this;
-            var data, dir, jitter;
+            var data, dir;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
+                        this.stop();
                         if (!(voxData instanceof Promise)) return [3 /*break*/, 2];
                         return [4 /*yield*/, voxData];
                     case 1:
@@ -83,22 +102,25 @@ var VoxModel = (function (_super) {
                         this.data = data;
                         dir = './vox';
                         this.animations = {};
-                        jitter = data.jitter ? data.jitter : 0;
+                        data.jitter = data.jitter ? data.jitter : 0;
                         if (this.data.animation) {
                             Object.keys(this.data.animation).forEach(function (key) {
                                 var anim = _this.data.animation[key];
-                                _this.animations[key] = __assign({}, anim, { vox: anim.vox.map(function (file) { return assets_1.Get(path.join(dir, file)).then(function (voxelBin) {
-                                        var builder = new vox_1.MeshBuilder(voxelBin, {
-                                            voxelSize: data.size,
-                                            vertexColor: true,
-                                            optimizeFaces: false,
-                                            jitter: jitter
+                                _this.animations[key] = __assign({}, anim, { vox: anim.vox.map(function (file, i) {
+                                        var filePath = path.join(dir, file);
+                                        return assets_1.Get(filePath).then(function (voxelBin) {
+                                            return BuildVoxMesh(voxelBin, data);
                                         });
-                                        var mesh = builder.createMesh();
-                                        mesh.castShadow = true;
-                                        mesh.receiveShadow = true;
-                                        return mesh;
-                                    }); }) });
+                                    }) });
+                                anim.vox.forEach(function (file, i) {
+                                    var filePath = path.join(dir, file);
+                                    assets_1.On(filePath, function (voxelBin) {
+                                        _this.animations[key].vox[i] = Promise.resolve(BuildVoxMesh(voxelBin, data));
+                                        if (_this.current) {
+                                            _this.play(_this.current);
+                                        }
+                                    });
+                                });
                             });
                         }
                         this.voxHolder = new THREE.Object3D();
@@ -123,7 +145,8 @@ var VoxModel = (function (_super) {
         this.timeout = setInterval(this.step.bind(this), this.animations[animation].speed);
     };
     VoxModel.prototype.stop = function () {
-        clearTimeout(this.timeout);
+        if (this.timeout)
+            clearTimeout(this.timeout);
     };
     VoxModel.prototype.step = function () {
         return __awaiter(this, void 0, void 0, function () {

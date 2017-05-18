@@ -44,7 +44,7 @@ interface IPlayerMessage {
     payload: IPlayerUpdate;
 }
 
-const DataFiles = Gets({
+const DataFiles = {
     character: '/content/character/character.toml',
     wall: '/content/tiles/wall.toml',
     sword: '/content/character/sword.toml',
@@ -56,7 +56,7 @@ const DataFiles = Gets({
     water: '/content/tiles/water.toml',
     tree: '/content/tiles/tree.toml',
     water2: '/content/tiles/water2.toml'
-});
+};
 
 const tribes = [
     'character',
@@ -186,69 +186,8 @@ export default class Scene extends THREE.Scene {
             // }
         };
 
-        this.createTiles();
-
         this.tick = this.tick.bind(this);
         this.tick();
-    }
-
-    async createTiles() {
-        this.grassMap = {};
-        this.waterMap = {};
-
-        const grassTile = new Vox(DataFiles.grass);
-        const dirtTile = new Vox(DataFiles.dirt);
-        const waterTile = new Vox(DataFiles.water);
-        const waterTile2 = new Vox(DataFiles.water2);
-
-        await DataFiles.all;
-
-        const tileModel = await grassTile.animations.idle.vox[0];
-        const dirtModel = await dirtTile.animations.idle.vox[0];
-        const waterModel = await waterTile.animations.idle.vox[0];
-        const waterModel2 = await waterTile2.animations.idle.vox[0];
-
-        for (let x = -20; x < 20; x++) {
-            this.waterMap[x] = {};
-            for (let y = -5; y < 20; y++) {
-                const doWater = true;
-
-                const tile = doWater ? waterModel.clone() : tileModel.clone();
-                const tileD = doWater ? waterModel2.clone() : dirtModel.clone();
-
-                tile.position.set(x, 0, y);
-                tileD.position.set(x, 0, y);
-
-                if (doWater) {
-                    this.waterMap[x][y] = tile;
-                    tile.material.opacity = 0.4;
-                    tile.material.transparent = true;
-                    tileD.position.set(x + 30, 0, y + 2);
-                    tileD.material.opacity = 0.6;
-                    tileD.material.transparent = true;
-
-                    tile.origy = tile.position.y;
-                } else {
-
-                    const positionOffset =
-                        (
-                            Math.sin(x * 0.2)
-                            + Math.cos(y * 0.8) * 0.1
-                        ) * 0.5 - 0.05;
-                    tile.position.y += positionOffset;
-                    tileD.position.y += positionOffset;
-                }
-                tile.rotateY(THREE.Math.degToRad(Math.round(Math.random() * 3) * 90));
-                tileD.rotateY(THREE.Math.degToRad(Math.round(Math.random() * 3) * 90));
-
-                if (!doWater && Math.abs(x) % 20 < 4 && Math.abs(y) % 20 < 4) {
-                    this.add(tileD);
-                } else {
-                    this.add(tile);
-                    //this.add(tileD);
-                }
-            }
-        }
     }
 
     tick() {
@@ -257,21 +196,6 @@ export default class Scene extends THREE.Scene {
         const delta = this.clock.getDelta();
 
         SystemManagerInst.update(delta);
-
-        Object.keys(this.waterMap).forEach(xkey => {
-            Object.keys(this.waterMap[xkey]).forEach(ykey => {
-                const positionOffset =
-                    (
-                        Math.sin(time * 0.0005 + parseInt(xkey, 10) * 0.5) * 0.5
-                        + Math.cos(time * 0.0005 + parseInt(ykey, 10) * 0.8) * 0.05
-                    )
-                    * 0.5 - 0.05;
-                const tile = this.waterMap[xkey][ykey];
-                tile.position.y = tile.origy + positionOffset;
-
-                // this.waterMap[xkey][ykey].rotateY(THREE.Math.degToRad(Math.round(Math.random() * 3) * 90));
-            });
-        });
     }
 }
 

@@ -2,6 +2,14 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 var systems_1 = require("./systems");
 var uuid = require('uuid');
+function addMissingDefaults(target, defaults) {
+    for (var prop in defaults) {
+        if (defaults[prop] && !target[prop]) {
+            target[prop] = defaults[prop];
+        }
+    }
+}
+exports.addMissingDefaults = addMissingDefaults;
 var SystemManager = (function () {
     function SystemManager() {
         this.systems = {};

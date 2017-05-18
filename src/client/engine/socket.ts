@@ -5,14 +5,17 @@ const ws = new WebSocket('ws://localhost:8080');
 let handlerId = 0;
 const handlers = {};
 
+let wsRes: any;
+const wsReady = new Promise(res => wsRes = res);
 export type IMessage = IMessage;
 
 ws.addEventListener('open', () => {
     console.log('connected');
+    wsRes();
 });
 
 ws.addEventListener('message', (e) => {
-    console.log(e.data);
+    // console.log(e.data);
     const data: IMessage = JSON.parse(e.data);
     Object.keys(handlers).forEach(key => {
         if(handlers[key][0] === data.topic) {
@@ -33,5 +36,5 @@ export const On = (wildcard: string, msgHandler)  => {
 };
 
 export const Send = (msg) => {
-    ws.send(JSON.stringify(msg));
+    wsReady.then(() => ws.send(JSON.stringify(msg)));
 };
