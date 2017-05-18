@@ -7,21 +7,51 @@ interface IEntity {
     [key: string]: any;
 }
 
+// Only deep merge has
 const resolveFile = async (file) => {
     const fileData = await Get(`/${file}`);
-    const has = fileData.has || [];
-
     if(fileData.is) {
         const subData = await resolveFile(fileData.is);
-        const subHas = subData.has || [];
-        Object.assign(fileData, subData, fileData, { has: has.concat(subHas) });
+        Object.assign(subData, fileData, {
+            has: Object.assign(subData.has, fileData.has)
+        });
     }
 
     return fileData;
 };
 
+// Probably needs to be cached so we don't do this all the time
+const expandEntity = (e: IEntity) => new Promise(async (resolve, reject) => {
+    if(!e) reject(e);
+
+    const data: any = {};
+
+    if(e.is) {
+        Object.assign(data, await resolveFile(e.is));
+    }
+
+    Object.assign(data, e, {
+        has: Object.assign(data.has, e.has)
+    });
+
+    // Has haven't had their is expanded
+    if(Object.keys(data.has).length > 0) {
+        for(const hasKey of Object.keys(data.has)) {
+            const hasData = data.has[hasKey];
+            data.has[hasKey] = expandEntity(hasData);
+        }
+    }
+
+    resolve(data);
+});
+
 export type FEntityUpdateHandler = (entity: IEntity) => void;
 
+// should be smart enough to do on('key.whatever')
+// and wildcards
+// should autohandle is updates
+// should not handle has updates
+// any has should probably be its own State
 export class State extends Map<string, IEntity> {
     private handlers: {[key: string]: FEntityUpdateHandler[]} = {};
 
@@ -40,19 +70,9 @@ export class State extends Map<string, IEntity> {
 
     // Make an entity including its templates
     make(key: string): Promise<IEntity> {
-        const e = super.get(key);
+        const entity = super.get(key);
 
-        return new Promise(async (resolve, reject) => {
-            if(!e) reject(e);
-
-            const data = {};
-
-            if(e.is) {
-                Object.assign(data, await resolveFile(e.is));
-            }
-
-            if(e.)
-        });
+        return expandEntity(entity);
     }
 
     set(key: string, entity: IEntity) {
@@ -68,9 +88,12 @@ export class State extends Map<string, IEntity> {
         if(typeof key === 'object') {
             key = key.id;
         }
-        this.fire(key);
+
+        const ret = super.delete(key);
+
+        this.fire(key, true);
         delete this.handlers[key];
-        return super.delete(key);
+        return ret;
     }
 
     toJSON() {
@@ -83,9 +106,9 @@ export class State extends Map<string, IEntity> {
         return result;
     }
 
-    private fire(key: string) {
+    private async fire(key: string, deleted = false) {
         const handlers = this.handlers[key] || [];
-        const val = this.get(key);
+        const val = deleted ? undefined : await this.make(key);
         handlers.forEach(fn => fn(val));
     }
 
