@@ -219,12 +219,10 @@ export default class PlayerControllerSystem implements ISystem {
 
         // Vital JF2 mechanics
         const phrases = [
-            'I like pina coladas, getting lost inthe rain',
+            'I like pina coladas, getting lost in the rain',
             'Jurassic Fallback 2',
             'More money, more',
             'See you later alligator, work that tail',
-            'I like pinya coladas',
-            'Those moves are Jurra sick',
             'Let me show you my Cambrian explosion',
             'Jurassic Park that ass over here',
             'Grind that pole until you are dinosaur'
@@ -252,8 +250,8 @@ export default class PlayerControllerSystem implements ISystem {
                     new THREE.Vector3((Math.random() * 20) - 10, Math.random() * 0.3, (Math.random() * 10) - 5));
             });
 
-            let hwnd = window as IHudWindow;
-            hwnd.hud.ba_dings++;
+            //let hwnd = window as IHudWindow;
+            //hwnd.hud.ba_dings++;
 
         }
     }

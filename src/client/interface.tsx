@@ -8,18 +8,6 @@ class Hud {
   ammo: number;
   clipSize: number;
   logObj: string[];
-  ba_dings: number;
-
-  renderFallback() {
-    ReactDOM.render(
-      <div>
-        <div id="health">
-          <b>Ba-dings:</b> {hwnd.hud.ba_dings}
-        </div>
-      </div>,
-      document.getElementById('hud')
-    );
-  }
 
   render() {
     ReactDOM.render(
@@ -30,16 +18,19 @@ class Hud {
         <div id="ammo">
           <b>Ammo:</b> {hwnd.hud.ammo}/{hwnd.hud.clipSize}
         </div>
-        <div id="log">{
-          hwnd.hud.logObj.forEach((element) => {
-            <div>{element}</div>
-          })}
-        </div>
       </div>,
       document.getElementById('hud')
     );
   }
 }
+
+/*       
+         <div id="log">{
+          hwnd.hud.logObj.forEach((element) => {
+            <div>{element}</div>
+          })}
+        </div>
+*/
 
 export interface IHudWindow extends Window {
   hud: Hud;
@@ -51,4 +42,3 @@ hwnd.hud.health = 7;
 hwnd.hud.ammo = 50;
 hwnd.hud.clipSize = 100;
 hwnd.hud.logObj = ["abc", "def"];
-hwnd.hud.ba_dings = 0;
