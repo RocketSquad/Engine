@@ -17,8 +17,6 @@ var RenderingSystem = (function () {
         this.vox[entity.id] = undefined;
         this.relativeEntities[entity.id] = undefined;
     };
-    RenderingSystem.prototype.update = function (dt) {
-    };
     return RenderingSystem;
 }());
 exports.default = RenderingSystem;

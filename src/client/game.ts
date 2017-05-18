@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import {current} from './o3d/scene';
 import './interface.tsx';
-import { IHudWindow } from "./interface";
+import { IHudWindow } from "./ui/interface";
 
 interface IWindowGame extends Window {
     camera: THREE.Camera;

@@ -6,6 +6,7 @@
   "dependencies": {
     "binary-loader": "0.0.1",
     "express": "^4.15.2",
+    "flatbuffers": "^1.6.0",
     "gaze": "^1.1.2",
     "howler": "^2.0.3",
     "nodemon": "^1.11.0",
@@ -26,6 +27,7 @@
     "@types/node": "^7.0.13",
     "@types/tape": "^4.2.29",
     "@types/three": "^0.84.6",
+    "@types/uuid": "^2.0.29",
     "@types/ws": "0.0.40",
     "awesome-typescript-loader": "^3.1.2",
     "node-static": "^0.7.9",
@@ -38,6 +40,7 @@
   },
   "scripts": {
     "watch": "node task webpackWatch compileWatch",
+    "dev": "node task webpackWatch compileWatch server",
     "serve": "webpack-dev-server --content-base public",
     "test": "ts-node node_modules/tape/bin/tape src/**/*.test.ts"
   },

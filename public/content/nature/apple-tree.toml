@@ -1,13 +1,13 @@
-file = 'content/tiles/tree.toml'
+is = 'content/tiles/tree.toml'
 
-[[child]]
-    file = 'content/character/apple.toml'
+[has.apple]
+    is = 'content/character/apple.toml'
     position = [1, 4, -1]
 
-[[child]]
-    file = 'content/character/apple.toml'
+[has.another_apple]
+    is = 'content/character/apple.toml'
     position = [0, 0, 0]
 
-[[child]]
-    file = 'content/character/apple.toml'
+[has.you_guessed_it_another_apple]
+    is = 'content/character/apple.toml'
     position = [1.5, 4.5, -1.0]

@@ -1,22 +1,8 @@
-import {ISystem} from '../systemManager';
-import Entity from '../entity';
+import { ISystem, Entity } from './interfaces';
 import Vox from '../o3d/vox';
 import * as THREE from 'three';
 
-interface IAnimationData {
-     label: string;
-     fileNames: string[];
-}
-
-interface IModelData {
-    fileName: string;
-    size: number;
-    fluxMagnitude: number;
-
-    animations: IAnimationData[];
-}
-
-export default class RenderingSystem implements ISystem {
+class RenderingSystem implements ISystem {
     vox: {[entityId: number]: Vox};
     relativeEntities: {[entityId: number]: Entity};
 
@@ -37,7 +23,6 @@ export default class RenderingSystem implements ISystem {
         this.vox[entity.id] = undefined;
         this.relativeEntities[entity.id] = undefined;
     }
-
-    update(dt: number) {
-    }
 }
+
+export default new RenderingSystem();

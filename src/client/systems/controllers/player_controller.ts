@@ -1,15 +1,16 @@
-import { ISystem, SystemManagerInst, addMissingDefaults } from '../systemManager';
-import Entity, { IControllerData } from '../entity';
-import {Get} from '../engine/assets';
+import { ISystem, SystemManagerInst, addMissingDefaults } from '../../systemManager';
+import Entity, { IControllerData } from '../../entity';
+import {Get} from '../../engine/assets';
 import * as THREE from 'three';
-import VoxModel from '../o3d/vox';
-import { keys, gamepads } from '../engine/input';
-import StatsSystem, { IStatsData } from './stats';
-import RMath from '../engine/math';
+import VoxModel from '../../o3d/vox';
+import { keys, gamepads } from '../../engine/input';
+import StatsSystem, { IStatsData } from '../stats';
+import RMath from '../../engine/math';
 import * as Howl from 'howler';
-import {current} from '../o3d/scene';
-import { IHudWindow } from "../interface";
-import { SayIt } from '../engine/voice';
+import {current} from '../../o3d/scene';
+import { IHudWindow } from "../../interface";
+import { SayIt } from '../../engine/voice';
+
 interface IWindowGame extends Window {
     camera: THREE.Camera;
 }
