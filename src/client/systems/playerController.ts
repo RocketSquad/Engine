@@ -197,6 +197,12 @@ export default class PlayerControllerSystem implements ISystem {
     update(dt: number) {
         const delta = this.clock.getDelta();
 
+        if (this.target &&
+            (keys.w || keys.s || keys.d || keys.a)) {
+            const statSystem = SystemManagerInst.getSystemByName("StatsSystem") as StatsSystem;
+            statSystem.useStamina(this.target, 5, dt);
+        }
+
         // Update the variety of controllers this system manages
         for(const key in this.controllers) {
             if(this.controllers[key]) {

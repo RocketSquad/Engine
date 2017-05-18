@@ -48,8 +48,6 @@ const render = () => {
     //var startTime = Date.now();
     renderer.render(current, camera);
 
-    let hwnd = window as IHudWindow;
-    hwnd.hud.render();
     //var elapsedTime = Date.now() - startTime;
     //document.getElementById("timer").innerHTML = (elapsedTime / 1000).toFixed(3);
 

@@ -1,25 +1,43 @@
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
 
-// http://media.tojicode.com/webgl-samples/hud-test.html
-
-class Hud {
+export interface IHudWindow extends Window {
+  hud: Hud;
+}
+export interface HudProps {
   health: number;
   ammo: number;
   clipSize: number;
-  logObj: string[];
+ }
+class Hud extends React.Component<HudProps, HudProps> {
+  constructor(hudOpts: HudProps) {
+    super();
+    
+    let hwnd = window as IHudWindow;
+    hwnd.hud = this;
 
+    this.state = hudOpts;
+    this.updateStats = this.updateStats.bind(this);
+  }
+  updateStats(newHealth: number) {
+    let newAmmo = 2;
+    let newClipSize = 10;
+    this.setState({
+      health: newHealth,
+      ammo: newAmmo,
+      clipSize: newClipSize
+    });
+  }
   render() {
-    ReactDOM.render(
+    return (
       <div>
         <div id="health">
-          <b>HP:</b> {hwnd.hud.health}
+         <b>HP:</b> {Math.floor(this.state.health)} 
         </div>
         <div id="ammo">
-          <b>Ammo:</b> {hwnd.hud.ammo}/{hwnd.hud.clipSize}
+          <b>Ammo:</b> {this.state.ammo}/{this.state.clipSize}
         </div>
-      </div>,
-      document.getElementById('hud')
+      </div>
     );
   }
 }
@@ -30,15 +48,7 @@ class Hud {
             <div>{element}</div>
           })}
         </div>
+hwnd.hud.logObj = ["abc", "def"];
 */
 
-export interface IHudWindow extends Window {
-  hud: Hud;
-}
-
-let hwnd = window as IHudWindow;
-hwnd.hud = new Hud();
-hwnd.hud.health = 7;
-hwnd.hud.ammo = 50;
-hwnd.hud.clipSize = 100;
-hwnd.hud.logObj = ["abc", "def"];
+ReactDOM.render(<Hud {...{health: 7, ammo: 4, clipSize: 8}} />, document.getElementById("hud"));

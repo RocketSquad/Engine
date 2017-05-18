@@ -61,8 +61,7 @@ export default class StatsSystem implements ISystem {
 
             // HACK / TODO - move this
             let hwnd = window as IHudWindow;
-            hwnd.hud.health = stats.stamina;
-            
+            hwnd.hud.updateStats(stats.stamina);
 
             // console.log(stats.health);
             const alive = !stats.dead; // aka not dead
