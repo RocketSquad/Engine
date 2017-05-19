@@ -1,19 +1,19 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-var WebSocket = require("ws");
-var userIds = 0;
-var Users = new Map();
-exports.Start = function (server) {
-    var wss = new WebSocket.Server({ server: server });
-    wss.on('connection', function (ws) {
-        var id = userIds++;
-        ws.on('message', function (message) {
+const WebSocket = require("ws");
+let userIds = 0;
+const Users = new Map();
+exports.Start = (server) => {
+    const wss = new WebSocket.Server({ server });
+    wss.on('connection', (ws) => {
+        const id = userIds++;
+        ws.on('message', (message) => {
             console.log('received: %s', message);
         });
-        ws.on('close', function () {
+        ws.on('close', () => {
             Users.delete(id);
         });
-        var Send = function (msg) {
+        const Send = (msg) => {
             ws.send(JSON.stringify(msg));
         };
         Send({
@@ -23,7 +23,6 @@ exports.Start = function (server) {
         Users.set(id, Send);
     });
 };
-exports.Broadcast = function (msg) {
-    Users.forEach(function (fn) { return fn(msg); });
+exports.Broadcast = (msg) => {
+    Users.forEach(fn => fn(msg));
 };
-//# sourceMappingURL=ws.js.map

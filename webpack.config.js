@@ -1,13 +1,10 @@
 module.exports = {
-    entry: "./src/client/index.ts",
+    entry: "./src/client/game.ts",
     
     output: {
         filename: "bundle.js",
         path: __dirname + "/public"
     },
-
-    // Enable sourcemaps for debugging webpack's output.
-    devtool: "source-map",
 
     resolve: {
         // Add '.ts' and '.tsx' as resolvable extensions.

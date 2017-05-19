@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import {current} from './o3d/scene';
-import './interface.tsx';
+import './ui/interface.tsx';
 import { IHudWindow } from "./ui/interface";
 
 interface IWindowGame extends Window {
@@ -44,15 +44,7 @@ window.addEventListener("optimizedResize", handleResize);
 // Render Loop
 const render = () => {
     requestAnimationFrame(render);
-
-    //var startTime = Date.now();
     renderer.render(current, camera);
-
-    let hwnd = window as IHudWindow;
-    hwnd.hud.renderFallback();
-    //var elapsedTime = Date.now() - startTime;
-    //document.getElementById("timer").innerHTML = (elapsedTime / 1000).toFixed(3);
-
 };
 
 document.body.appendChild(renderer.domElement);

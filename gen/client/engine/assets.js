@@ -1,34 +1,66 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 // Load Vox/TOML files from a file
-var vox_1 = require("./vox");
-var socket_1 = require("./socket");
-var b64 = require('base64-js');
-var toml = require('toml');
-var ASSETS = {};
-var Memoize = function (file, action) {
-    return ASSETS[file] ? ASSETS[file] : Set(file, action(file));
-};
-var Watchers = {};
-var FromBase64 = function (base64) {
+const vox_1 = require("./vox");
+const socket_1 = require("./socket");
+const b64 = require('base64-js');
+const toml = require('toml');
+const ASSETS = {};
+const Memoize = (file, action) => ASSETS[file] ? ASSETS[file] : Set(file, action(file));
+// oh baby alignment
+const InheritanceUp = {};
+const InheritanceDown = {};
+const Watchers = {};
+const FromBase64 = (base64) => {
     return b64.toByteArray(base64);
 };
-var postProcess = {
-    vox: function (data) { return data.arrayBuffer().then(function (arrBuff) { return vox_1.Parse(new Uint8Array(arrBuff)); }); },
-    toml: function (data) { return data.text().then(toml.parse); }
+const postProcess = {
+    vox: (data, file) => data.arrayBuffer().then(arrBuff => vox_1.Parse(new Uint8Array(arrBuff))),
+    toml: (data, file) => data.text()
+        .then(toml.parse)
+        .then(tomlData => resolveFile(tomlData, file))
 };
-var Set = function (file, dataPromise) {
-    ASSETS[file] = dataPromise;
-    var handlers = Watchers[file] || [];
-    dataPromise.then(function (data) {
-        if (handlers) {
-            handlers.forEach(function (fn) { return fn(data, file); });
+const resolveFile = async (fileData, file) => {
+    if (fileData.is) {
+        const chain = InheritanceUp[fileData.is] || [];
+        chain.push(file);
+        InheritanceUp[fileData.is] = chain;
+        InheritanceDown[file] = fileData.is;
+        const subData = await exports.Get(fileData.is);
+        Object.assign(subData, fileData, {
+            has: Object.assign(subData.has, fileData.has)
+        });
+    }
+    else {
+        // No longer inherit you fool
+        if (InheritanceDown[file]) {
+            const downFile = InheritanceDown[file];
+            const idx = InheritanceUp[downFile].indexOf(file);
+            InheritanceUp[downFile] = InheritanceUp[downFile].splice(idx, 1);
+            delete InheritanceDown[file];
         }
-    });
+    }
+    return fileData;
+};
+const Fire = (file) => exports.Get(file).then(data => {
+    const handlers = Watchers[file];
+    if (handlers) {
+        handlers.forEach(fn => fn(data, file));
+    }
+    // shit its a gundam.... toml file
+    const isToml = file.indexOf('.toml') !== -1;
+    const hasUpstream = InheritanceUp[file] && InheritanceUp[file].length > 0;
+    if (isToml && hasUpstream) {
+        InheritanceUp[file].forEach(Fire);
+    }
+});
+const Set = (file, dataPromise) => {
+    ASSETS[file] = dataPromise;
+    Fire(file);
     return dataPromise;
 };
-socket_1.On('asset', function (msg) {
-    var result = msg.payload;
+socket_1.On('asset', (msg) => {
+    const result = msg.payload;
     if (result.path.indexOf('.vox') !== -1) {
         result.data = vox_1.Parse(FromBase64(result.data));
     }
@@ -38,40 +70,43 @@ socket_1.On('asset', function (msg) {
     else {
         console.log('Unhandled asset', msg);
     }
+    console.log('SET', result.path);
     Set(result.path, Promise.resolve(result.data));
 });
-exports.Off = function (file, callback) {
-    var handlers = Watchers[file] || [];
-    var idx = handlers.indexOf(callback);
+exports.Off = (file, callback) => {
+    const handlers = Watchers[file] || [];
+    const idx = handlers.indexOf(callback);
     if (idx !== -1) {
         Watchers[file] = handlers.splice(idx, 1);
     }
     return idx !== -1;
 };
-// Need a way to unsub
-exports.On = function (file, callback) {
-    var handlers = Watchers[file] || [];
+exports.Watch = async (file, callback) => {
+    exports.On(file, callback);
+    callback(await exports.Get(file));
+};
+exports.On = (file, callback) => {
+    const handlers = Watchers[file] || [];
     handlers.push(callback);
     Watchers[file] = handlers;
 };
-exports.Get = function (file) { return Memoize(file, function () {
-    return fetch(file).then(function (dataResponse) {
-        var processing = Promise.resolve(dataResponse);
-        Object.keys(postProcess).some(function (key) {
-            if (file.indexOf("." + key) !== -1) {
-                processing = postProcess[key](dataResponse);
+exports.Get = (file) => Memoize(file, () => {
+    return fetch(file).then((dataResponse) => {
+        let processing = Promise.resolve(dataResponse);
+        Object.keys(postProcess).some(key => {
+            if (file.indexOf(`.${key}`) !== -1) {
+                processing = postProcess[key](dataResponse, file);
                 return true;
             }
         });
         return processing;
     });
-}); };
-exports.Gets = function (files) {
-    var returnObj = {};
-    Object.keys(files).forEach(function (key) {
+});
+exports.Gets = (files) => {
+    const returnObj = {};
+    Object.keys(files).forEach(key => {
         returnObj[key] = exports.Get(files[key]);
     });
-    returnObj.all = Promise.all(Object.keys(returnObj).map(function (key) { return returnObj[key]; }));
+    returnObj.all = Promise.all(Object.keys(returnObj).map(key => returnObj[key]));
     return returnObj;
 };
-//# sourceMappingURL=assets.js.map

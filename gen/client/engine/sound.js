@@ -1,29 +1,26 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-var howler_1 = require("howler");
-var Sound = (function () {
-    function Sound(path) {
-        var _this = this;
+const howler_1 = require("howler");
+class Sound {
+    constructor(path) {
         this.sfx = new howler_1.Howl({
             src: [path],
-            onend: function () {
-                _this.playing = false;
+            onend: () => {
+                this.playing = false;
             },
         });
         this.playing = false;
     }
-    Sound.prototype.play = function () {
+    play() {
         if (!this.playing) {
             this.playing = true;
             this.sfx.play();
         }
-    };
-    Sound.prototype.stop = function () {
+    }
+    stop() {
         if (this.playing) {
             this.sfx.stop();
         }
-    };
-    return Sound;
-}());
+    }
+}
 exports.default = Sound;
-//# sourceMappingURL=sound.js.map

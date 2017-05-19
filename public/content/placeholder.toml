@@ -1,0 +1,10 @@
+default = 'idle'
+size = 0.2
+position = [-5, 0, 0]
+rotation = [0, 180, 0]
+
+[animation.idle]
+    speed = 1
+    vox = [
+        'tiles/tree.vox'
+    ]
