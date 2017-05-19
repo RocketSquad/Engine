@@ -1,7 +1,7 @@
 import * as THREE from 'three';
-import { keys } from '../../engine/input';
-import Vox from '../../o3d/vox';
-import {Get, On, Watch} from '../../engine/assets';
+import { keys } from '../engine/input';
+import Vox from '../o3d/vox';
+import {Get, On, Watch} from '../engine/assets';
 
 interface IControllerData {
     turnSpeed: number;

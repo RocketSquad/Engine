@@ -111,6 +111,7 @@ export default class VoxModel extends THREE.Object3D {
         const anim = this.animations[this.current];
         if(anim.vox.length > 0)
             this.timeout = setInterval(this.step.bind(this), this.animations[animation].speed);
+        this.step();
     }
 
     stop() {

@@ -10607,91 +10607,20 @@ hwnd.hud.ba_dings = 0;
 
 
 /***/ }),
-/* 85 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const KeyLookUp = {
-    13: 'enter',
-    8: 'backspace',
-    9: 'tab',
-    17: 'ctrl',
-    18: 'alt',
-    37: 'left',
-    38: 'up',
-    39: 'right',
-    40: 'down',
-    32: 'space'
-};
-window.addEventListener('blur', (e) => {
-    Object.keys(exports.keys).forEach((k) => {
-        exports.keys[k] = false;
-    });
-});
-window.addEventListener('gamepadconnected', e => {
-    const index = e.gamepad.index;
-    console.log("connection event for " + index);
-    const gamepad = navigator.getGamepads()[index];
-    exports.gamepads[index] = gamepad;
-    console.log("end of connection event for " + index);
-});
-window.addEventListener('gamepaddisconnected', e => {
-    console.log("disconnection event");
-    const index = e.gamepad.index;
-    delete exports.gamepads[index];
-});
-document.addEventListener('keyup', (e) => {
-    const lookUp = KeyLookUp[e.keyCode];
-    exports.keys[e.keyCode] = false;
-    exports.keys[lookUp || e.key.toLowerCase()] = false;
-});
-document.addEventListener('keydown', (e) => {
-    const lookUp = KeyLookUp[e.keyCode];
-    exports.keys[e.keyCode] = true;
-    exports.keys[lookUp || e.key.toLowerCase()] = true;
-});
-document.addEventListener('mousemove', e => {
-    exports.mouse.x = e.clientX;
-    exports.mouse.y = e.clientY;
-    const w = window.innerWidth;
-    const h = window.innerHeight;
-    exports.mouse.xp = exports.mouse.x / w - .5;
-    exports.mouse.yp = exports.mouse.y / h - .5;
-});
-document.addEventListener('mousedown', e => {
-    exports.mouse.left = true;
-});
-document.addEventListener('mouseup', e => {
-    exports.mouse.left = false;
-});
-exports.gamepads = [];
-exports.keys = {};
-exports.mouse = {
-    x: 0,
-    y: 0,
-    xp: 0,
-    yp: 0,
-    left: false,
-    right: false,
-};
-
-
-/***/ }),
+/* 85 */,
 /* 86 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-console.log('connecting to ', location.toString());
+console.log('connecting to ', location.host, location.port);
 let handlerId = 0;
 const handlers = {};
 let wsRes;
 let wsReady = new Promise(res => wsRes = res);
 const makeConnection = () => {
-    const ws = new WebSocket('ws://localhost:8080');
+    const ws = new WebSocket(`ws://${location.host}`);
     ws.addEventListener('open', () => {
         console.log('connected');
         wsRes(ws);
@@ -10969,6 +10898,7 @@ class VoxModel extends THREE.Object3D {
         const anim = this.animations[this.current];
         if (anim.vox.length > 0)
             this.timeout = setInterval(this.step.bind(this), this.animations[animation].speed);
+        this.step();
     }
     stop() {
         if (this.timeout)
@@ -10988,77 +10918,9 @@ exports.default = VoxModel;
 
 /***/ }),
 /* 90 */
-/***/ (function(module, exports, __webpack_require__) {
+/***/ (function(module, exports) {
 
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const THREE = __webpack_require__(20);
-const input_1 = __webpack_require__(85);
-const assets_1 = __webpack_require__(26);
-let data = {
-    turnSpeed: 1,
-    forwardSpeed: 1,
-    cameraLerp: 1,
-    cameraOffset: [0, 5, 5],
-    cameraLookAt: [0, 0, 0]
-};
-assets_1.Watch('content/controller/character.toml', (newData) => {
-    console.log('got', newData);
-    data = newData;
-});
-class CharacterController {
-    constructor(target) {
-        this.target = target;
-        this.tick = this.tick.bind(this);
-        this.setup();
-    }
-    async setup() {
-        this.clock = new THREE.Clock();
-        this.target.position.set(0, 0, -5);
-        this.tick();
-    }
-    tick() {
-        const delta = this.clock.getDelta();
-        let forward = 0;
-        let turn = 0;
-        let up = 0;
-        requestAnimationFrame(this.tick);
-        if (input_1.keys.w)
-            forward = 1;
-        if (input_1.keys.s)
-            forward = -1;
-        if (input_1.keys.d)
-            turn = -1;
-        if (input_1.keys.a)
-            turn = 1;
-        if (input_1.keys.x)
-            up = 1;
-        if (input_1.keys.c)
-            up = -1;
-        this.target.rotateY(turn * delta * data.turnSpeed);
-        this.target.translateZ(forward * delta * data.forwardSpeed);
-        this.target.translateY(up * delta * data.forwardSpeed);
-        const walking = forward !== 0 || turn !== 0;
-        /*
-        if (walking && this.target.current !== 'walk') {
-            this.target.play('walk');
-        } else if (!walking && this.target.current !== 'idle') {
-            this.target.play('idle');
-        }*/
-        if (window.camera) {
-            const cam = window.camera;
-            const axis = new THREE.Vector3().fromArray(data.cameraLookAt);
-            // axis.applyQuaternion(this.target.quaternion);
-            const dstPosition = this.target.position.clone().add(axis);
-            const camPosition = this.target.position.clone().add(new THREE.Vector3().fromArray(data.cameraOffset));
-            cam.position.lerp(camPosition, data.cameraLerp);
-            cam.lookAt(dstPosition);
-        }
-    }
-}
-exports.default = CharacterController;
-
+throw new Error("Module build failed: Error: ENOENT: no such file or directory, open 'C:\\github\\Engine\\src\\client\\systems\\controllers\\character-controller.ts'");
 
 /***/ }),
 /* 91 */

@@ -1,6 +1,5 @@
 import {IMessage} from '../../common/message';
-console.log('connecting to ', location.toString());
-
+console.log('connecting to ', location.host, location.port);
 
 let handlerId = 0;
 const handlers = {};
@@ -10,7 +9,7 @@ let wsReady = new Promise<WebSocket>(res => wsRes = res);
 export type IMessage = IMessage;
 
 const makeConnection = () => {
-    const ws = new WebSocket('ws://localhost:8080');
+    const ws = new WebSocket(`ws://${location.host}`);
     ws.addEventListener('open', () => {
         console.log('connected');
         wsRes(ws);
