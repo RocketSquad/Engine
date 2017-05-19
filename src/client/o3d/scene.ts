@@ -3,7 +3,7 @@ import Vox, { IVoxData } from './vox';
 import { Gets, Get } from '../engine/assets';
 import { State, IEntity } from '../engine/state';
 
-import CharacterController from '../systems/controllers/character-controller';
+import CharacterController from '../systems/character-controller';
 import * as uuid from 'uuid';
 
 export let current: Scene;
