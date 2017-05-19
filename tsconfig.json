@@ -1,10 +1,9 @@
 {
     "compilerOptions": {
         "outDir": "./gen/",
-        "sourceMap": true,
         "lib": ["es2017", "dom"],
         "module": "commonjs",
-        "target": "es5",
+        "target": "es2017",
         "jsx": "react",
         "allowJs": true
     },

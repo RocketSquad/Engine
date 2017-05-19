@@ -4,7 +4,6 @@ import * as fs from 'fs';
 const gaze = require('gaze');
 const path = require('path');
 
-
 const FixPath = (filePath) => {
     return path.relative('public', filePath).replace(/\\/g, '/');
 };

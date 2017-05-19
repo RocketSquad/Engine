@@ -6,6 +6,7 @@ const commands = {
     compile: bin + 'tsc',
     webpack: bin + 'webpack',
     server: bin + 'nodemon --watch gen/server gen/server',
+    test: bin + 'mocha -g gen/**/*.test.js',
     compileWatch: bin + 'tsc -w',
     webpackWatch: bin + 'webpack -w'
 };

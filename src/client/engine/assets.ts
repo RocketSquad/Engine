@@ -8,8 +8,12 @@ const ASSETS = {};
 const Memoize = (file: string, action: any): Promise<any> =>
     ASSETS[file] ? ASSETS[file] : Set(file, action(file));
 
-
 type WatcherHandler = (payload: any, path?: string) => void;
+
+// oh baby alignment
+const InheritanceUp: {[key: string]: string[]} = {};
+const InheritanceDown: {[key: string]: string} = {};
+
 const Watchers: {[key: string]: WatcherHandler[]} = {};
 
 const FromBase64 = (base64: string) => {
@@ -17,20 +21,51 @@ const FromBase64 = (base64: string) => {
 };
 
 const postProcess = {
-    vox: (data: Response) => data.arrayBuffer().then(arrBuff => Parse(new Uint8Array(arrBuff))),
-    toml: (data: Response) => data.text().then(toml.parse)
+    vox: (data: Response, file: string) => data.arrayBuffer().then(arrBuff => Parse(new Uint8Array(arrBuff))),
+    toml: (data: Response, file: string) => data.text()
+        .then(toml.parse)
+        .then(tomlData => resolveFile(tomlData, file))
 };
 
-const Set = (file: string, dataPromise: Promise<any>) => {
-    ASSETS[file] = dataPromise;
-    const handlers = Watchers[file] || [];
+const resolveFile = async (fileData, file: string) => {
+    if(fileData.is) {
+        const chain = InheritanceUp[fileData.is] || [];
+        chain.push(file);
+        InheritanceUp[fileData.is] = chain;
+        InheritanceDown[file] = fileData.is;
+        const subData = await Get(fileData.is);
+        Object.assign(subData, fileData, {
+            has: Object.assign(subData.has, fileData.has)
+        });
+    } else {
+        // No longer inherit you fool
+        if(InheritanceDown[file]) {
+            const downFile = InheritanceDown[file];
+            const idx = InheritanceUp[downFile].indexOf(file);
+            InheritanceUp[downFile] = InheritanceUp[downFile].splice(idx, 1);
+            delete InheritanceDown[file];
+        }
+    }
+    return fileData;
+};
 
-    dataPromise.then((data) => {
+const Fire = (file: string) =>
+    Get(file).then(data => {
+        const handlers = Watchers[file];
         if(handlers) {
             handlers.forEach(fn => fn(data, file));
         }
+        // shit its a gundam.... toml file
+        const isToml = file.indexOf('.toml') !== -1;
+        const hasUpstream = InheritanceUp[file] && InheritanceUp[file].length > 0;
+        if(isToml && hasUpstream) {
+            InheritanceUp[file].forEach(Fire);
+        }
     });
 
+const Set = (file: string, dataPromise: Promise<any>) => {
+    ASSETS[file] = dataPromise;
+    Fire(file);
     return dataPromise;
 };
 
@@ -43,7 +78,7 @@ SocketOn('asset', (msg: IMessage) => {
     } else {
         console.log('Unhandled asset', msg);
     }
-
+    console.log('SET', result.path);
     Set(result.path, Promise.resolve(result.data));
 });
 
@@ -58,7 +93,11 @@ export const Off = (file: string, callback: WatcherHandler) => {
     return idx !== -1;
 };
 
-// Need a way to unsub
+export const Watch = async (file: string, callback: WatcherHandler) => {
+    On(file, callback);
+    callback(await Get(file));
+};
+
 export const On = (file: string, callback: WatcherHandler) => {
     const handlers = Watchers[file] || [];
     handlers.push(callback);
@@ -71,7 +110,7 @@ export const Get = (file: string) => Memoize(file, () => {
 
         Object.keys(postProcess).some(key => {
             if(file.indexOf(`.${key}`) !== -1) {
-                processing = postProcess[key](dataResponse);
+                processing = postProcess[key](dataResponse, file);
                 return true;
             }
         });

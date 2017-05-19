@@ -9,11 +9,11 @@ export interface IAnimation {
 }
 
 export interface IVoxData {
-    animation: { [key: string]: IAnimation };
+    animation?: { [key: string]: IAnimation };
     size?: number;
     rotation?: number[];
     position?: number[];
-    default: string;
+    default?: string;
     jitter?: number;
 }
 
@@ -108,8 +108,10 @@ export default class VoxModel extends THREE.Object3D {
 
         this.current = animation;
         this.frame = 0;
-
-        this.timeout = setInterval(this.step.bind(this), this.animations[animation].speed);
+        const anim = this.animations[this.current];
+        if(anim.vox.length > 0)
+            this.timeout = setInterval(this.step.bind(this), this.animations[animation].speed);
+        this.step();
     }
 
     stop() {
