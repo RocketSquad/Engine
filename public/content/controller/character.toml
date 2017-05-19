@@ -3,3 +3,4 @@ cameraLookAt = [0, 0, 1]
 cameraLerp = 1
 turnSpeed = 5
 forwardSpeed = 1
+

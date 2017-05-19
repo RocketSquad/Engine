@@ -27,6 +27,8 @@
     "@types/howler": "^2.0.2",
     "@types/mocha": "^2.2.41",
     "@types/node": "^7.0.13",
+    "@types/react": "^15.0.24",
+    "@types/react-dom": "^15.5.0",
     "@types/three": "^0.84.6",
     "@types/uuid": "^2.0.29",
     "@types/ws": "0.0.40",

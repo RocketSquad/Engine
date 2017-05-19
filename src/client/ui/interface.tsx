@@ -1,14 +1,20 @@
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
 
-// http://media.tojicode.com/webgl-samples/hud-test.html
-
-class Hud {
+export interface IHudWindow extends Window {
+  hud: Hud;
+}
+export interface HudProps {
   health: number;
   ammo: number;
   clipSize: number;
-  logObj: string[];
-  ba_dings: number;
+ }
+class Hud extends React.Component<HudProps, HudProps> {
+  constructor(hudOpts: HudProps) {
+    super();
+    
+    let hwnd = window as IHudWindow;
+    hwnd.hud = this;
 
   renderFallback() {
     ReactDOM.render(
@@ -19,33 +25,17 @@ class Hud {
   }
 
   render() {
-    ReactDOM.render(
+    return (
       <div>
         <div id="health">
-          <b>HP:</b> {hwnd.hud.health}
+         <b>HP:</b> {Math.floor(this.state.health)} 
         </div>
         <div id="ammo">
-          <b>Ammo:</b> {hwnd.hud.ammo}/{hwnd.hud.clipSize}
+          <b>Ammo:</b> {this.state.ammo}/{this.state.clipSize}
         </div>
-        <div id="log">{
-          hwnd.hud.logObj.forEach((element) => {
-            <div>{element}</div>
-          })}
-        </div>
-      </div>,
-      document.getElementById('hud')
+      </div>
     );
   }
 }
 
-export interface IHudWindow extends Window {
-  hud: Hud;
-}
-
-let hwnd = window as IHudWindow;
-hwnd.hud = new Hud();
-hwnd.hud.health = 7;
-hwnd.hud.ammo = 50;
-hwnd.hud.clipSize = 100;
-hwnd.hud.logObj = ["abc", "def"];
-hwnd.hud.ba_dings = 0;
+ReactDOM.render(<Hud {...{health: 7, ammo: 4, clipSize: 8}} />, document.getElementById("hud"));
