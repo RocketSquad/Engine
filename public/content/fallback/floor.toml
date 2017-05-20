@@ -1,44 +1,44 @@
-[[child]]
-    file = 'content/tiles/wall.toml'
+[has.wall1]
+    is = 'content/tiles/wall.toml'
     rotation = [90, 0, 0]
     position = [0, -1, 0]
 
-[[child]]
-    file = 'content/tiles/wall.toml'
+[has.wall2]
+    is = 'content/tiles/wall.toml'
     rotation = [90, 0, 0]
     position = [0, -1, -3]
 
-[[child]]
-    file = 'content/tiles/wall.toml'
+[has.wall3]
+    is = 'content/tiles/wall.toml'
     rotation = [90, 0, 0]
     position = [0, -1, 3]
 
-[[child]]
-    file = 'content/tiles/wall.toml'
+[has.wall4]
+    is = 'content/tiles/wall.toml'
     rotation = [90, -1, 0]
     position = [5, -1, 0]
 
-[[child]]
-    file = 'content/tiles/wall.toml'
+[has.wall5]
+    is = 'content/tiles/wall.toml'
     rotation = [90, -1, 0]
     position = [-5, -1, 0]
 
-[[child]]
-    file = 'content/tiles/wall.toml'
+[has.wall6]
+    is = 'content/tiles/wall.toml'
     rotation = [90, -1, 0]
     position = [5, -1, 3]
 
-[[child]]
-    file = 'content/tiles/wall.toml'
+[has.wall7]
+    is = 'content/tiles/wall.toml'
     rotation = [90, -1, 0]
     position = [-5, -1, 3]
 
-[[child]]
-    file = 'content/tiles/wall.toml'
+[has.wall8]
+    is = 'content/tiles/wall.toml'
     rotation = [90, -1, 0]
     position = [5, -1, -3]
 
-[[child]]
-    file = 'content/tiles/wall.toml'
+[has.wall9]
+    is = 'content/tiles/wall.toml'
     rotation = [90, -1, 0]
     position = [-5, -1, -3]

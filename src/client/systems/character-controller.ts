@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { keys } from '../engine/input';
 import Vox from '../o3d/vox';
-import {Get} from '../engine/assets';
+import {Get, On, Watch} from '../engine/assets';
 
 interface IControllerData {
     turnSpeed: number;
@@ -15,21 +15,30 @@ interface IWindowGame extends Window {
     camera: THREE.Camera;
 }
 
-const dataPromise: Promise<IControllerData> = Get('../content/controller/character.toml');
-let data: IControllerData;
+let data: IControllerData = {
+    turnSpeed: 1,
+    forwardSpeed: 1,
+    cameraLerp: 1,
+    cameraOffset: [0, 5, 5],
+    cameraLookAt: [0, 0, 0]
+};
+
+Watch('content/controller/character.toml', (newData) => {
+    console.log('got', newData);
+    data = newData;
+});
 
 export default class CharacterController {
-    target: Vox;
+    target: THREE.Object3D;
     clock: THREE.Clock;
 
-    constructor(target: Vox) {
+    constructor(target: THREE.Object3D) {
         this.target = target;
         this.tick = this.tick.bind(this);
         this.setup();
     }
 
     async setup() {
-        data = await dataPromise;
         this.clock = new THREE.Clock();
         this.target.position.set(0, 0, -5);
         this.tick();
@@ -56,11 +65,12 @@ export default class CharacterController {
 
         const walking = forward !== 0 || turn !== 0;
 
+        /*
         if (walking && this.target.current !== 'walk') {
             this.target.play('walk');
         } else if (!walking && this.target.current !== 'idle') {
             this.target.play('idle');
-        }
+        }*/
 
         if((window as IWindowGame).camera) {
             const cam = (window as IWindowGame).camera;

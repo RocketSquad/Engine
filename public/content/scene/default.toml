@@ -1,50 +1,16 @@
-[[entity]]
-    file = 'content/fallback/floor.toml'
+[has.floor]
+    is = 'content/fallback/floor.toml'
     position = [0, 0, 0]
 
-[[entity]]
-    file = 'content/fallback/background.toml'
+[has.placeholder]
+    is = 'content/placeholder.toml'
+
+[has.background]
+    is = 'content/fallback/background.toml'
     position = [0, -10, -2]
     size = 0.9
     rotation = [0, 90, 0]
 
-[[entity]]
-    file = 'content/fallback/floor.toml'
+[has.another_floor]
+    is = 'content/fallback/floor.toml'
     position = [-15, 0, 0]
-
-[[entity]]
-    file = 'content/fallback/carpet.toml'
-    rotation = [0, 90, 0]
-    jitter = 0.2
-    position = [0.0, -0.3, 0.0]
-
-[[entity]]
-    file = 'content/fallback/floor.toml'
-    position = [15, 0, 0]
-
-[[entity]]
-    file = 'content/fallback/floor.toml'
-    position = [15, 0, 9]
-
-[[entity]]
-    file = 'content/fallback/floor.toml'
-    position = [-15, 0, 9]
-
-[[entity]]
-    file = 'content/fallback/floor.toml'
-    position = [0, 0, 9]
-
-[[entity]]
-    file = 'content/fallback/pole.toml'
-
-[[entity]]
-    file = 'content/character/enemy1.toml'
-    position = [-5, 0, 0]
-
-[[entity]]
-    file = 'content/character/friend1.toml'
-    position = [5, 0, 0]
-
-[[entity]]
-    file = 'content/character/dinostrip.toml'
-    position = [0, 0, -1]
