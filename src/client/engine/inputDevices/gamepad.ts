@@ -52,15 +52,19 @@ function tick() {
     requestAnimationFrame(tick);
 
     // Handle gamepads
-    navigator.getGamepads().forEach((gamepad, gamepadId) => {
-        gamepad.axes.forEach((value, index) => {
-            FireGamepadEvents(gamepadAxesEvents, gamepadId, index, value);
-        });
-        gamepad.buttons.forEach((value, index) => {
-            FireGamepadEvents(gamepadButtonEvents, gamepadId, index,
-                              value.value !== undefined ? value.value : (value.pressed?1:0));
-        });
-    });
+    const gpds = navigator.getGamepads();
+    for(let i = 0; i < gpds.length; ++i) {
+        if(gpds[i]) {
+            for(let a = 0; a < gpds[i].axes.length; ++a) {
+                FireGamepadEvents(gamepadAxesEvents, i, a, gpds[i].axes[a]);
+            }
+            for(let b = 0; b < gpds[i].buttons.length; ++b) {
+                const button = gpds[i].buttons[b];
+                FireGamepadEvents(gamepadButtonEvents, i, b,
+                                button.value !== undefined ? button.value : (button.pressed?1:0));
+            }
+        }
+    }
 }
 
 tick();

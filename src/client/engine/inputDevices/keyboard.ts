@@ -50,6 +50,7 @@ function fireKeyEvents(key: string | number, keyState: number) {
 
 export function onKeyEvent(key: string | number, keyState: number, fn: () => void) {
     // [TODO] figure out how to assert that keyState is valid KS_ enum
+    if(keyEvents[key] === undefined) keyEvents[key] = new EventSets();
     return keyEvents[key].allSets[keyState].push(fn);
 }
 
@@ -87,8 +88,11 @@ document.addEventListener('keyup', (e) => {
 document.addEventListener('keydown', (e) => {
     const lookUp = KeyLookUp[e.keyCode] || e.key.toLowerCase();
 
-    rawKeys[e.keyCode] = true;
-    rawKeys[lookUp] = true;
-    fireKeyEvents(e.keyCode, KS_TRIGGERED);
-    fireKeyEvents(lookUp, KS_TRIGGERED);
+    // only fire trigger events once
+    if(!rawKeys[e.keyCode]) {
+        rawKeys[e.keyCode] = true;
+        rawKeys[lookUp] = true;
+        fireKeyEvents(e.keyCode, KS_TRIGGERED);
+        fireKeyEvents(lookUp, KS_TRIGGERED);
+    }
 });

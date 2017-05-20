@@ -1,32 +1,46 @@
 import * as inputDevices from './inputDevices';
 import * as AssetManager from './assets';
 
-const inputAction: {[action: string]: Array<(value: number)=>void>} = {};
-const fireActions = (action: string, value: number) => {inputAction[action].forEach(fn => fn(value));};
+const inputActions: {[action: string]: Array<(value: number)=>void>} = {};
+const fireActions = (action: string, value: number) => {inputActions[action].forEach(fn => fn(value));};
 
 interface IInputMapping {
     gamepad?: string|number;
     key?: string|number;
-    value: number;
+    amount: number;
 }
 
 interface IInputActionMap {
-    [action: string]: IInputMapping;
+    [action: string]: IInputMapping[];
 }
 
-function setupInputMappings(inputActions: IInputActionMap) {
-    for(const action in inputActions) {
-        if(inputActions[action]) {
-            const mapping: IInputMapping = inputActions[action];
-            if(mapping.gamepad) {
-                // inputDevices.gamepad. SHIT how do I handle this?? whiteboard time
-            } else if(mapping.key) {
-                inputDevices.keyboard.onKeyEvent(mapping.key, inputDevices.keyboard.KS_PRESSED, () => {
-                    fireActions(action, mapping.value);
-                });
+function setupInputMappings(inputActionMap: IInputActionMap) {
+    console.log('mapping ' + JSON.stringify(inputActionMap));
+    for(const action in inputActionMap) {
+        if(inputActionMap[action]) {
+            for(const mapping of inputActionMap[action]) {
+                if(mapping.gamepad) {
+                    // inputDevices.gamepad. SHIT how do I handle this?? whiteboard time
+                } else if(mapping.key) {
+                    console.log(`mapping ${mapping.key} with value ${mapping.amount}`);
+                    inputDevices.keyboard.onKeyEvent(mapping.key, inputDevices.keyboard.KS_PRESSED, () => {
+                        fireActions(action, mapping.amount);
+                    });
+                }
             }
         }
     }
+}
+
+AssetManager.Get('../content/systems/input.toml').then(setupInputMappings);
+
+export function on(actionName: string, handler: (value: number)=>void) {
+    if(inputActions[actionName] === undefined) inputActions[actionName] = [];
+    return inputActions[actionName].push(handler);
+}
+
+export function off(actionName: string, handlerId: number) {
+    delete inputActions[actionName][handlerId];
 }
 
 export const mouse = inputDevices.mouse;

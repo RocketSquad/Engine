@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { keys } from '../engine/input';
+import * as Input from '../engine/input';
 import Vox from '../o3d/vox';
 import {Get, On, Watch} from '../engine/assets';
 
@@ -31,33 +31,33 @@ Watch('content/controller/character.toml', (newData) => {
 export default class CharacterController {
     target: THREE.Object3D;
     clock: THREE.Clock;
+    input: THREE.Vector3;
 
     constructor(target: THREE.Object3D) {
         this.target = target;
         this.tick = this.tick.bind(this);
+        this.input = new THREE.Vector3();
         this.setup();
     }
 
     async setup() {
         this.clock = new THREE.Clock();
         this.target.position.set(0, 0, -5);
+        Input.on('forward', value=>this.input.z += value);
+        Input.on('right', value=>this.input.x += value);
+        Input.on('up', value=>this.input.y += value);
         this.tick();
     }
 
     tick() {
         const delta = this.clock.getDelta();
-        let forward = 0;
-        let turn = 0;
-        let up = 0;
+        const forward = this.input.z;
+        const turn = this.input.x;
+        const up = this.input.y;
+
+        this.input = new THREE.Vector3();
 
         requestAnimationFrame(this.tick);
-
-        if (keys.w) forward = 1;
-        if (keys.s) forward = -1;
-        if (keys.d) turn = -1;
-        if (keys.a) turn = 1;
-        if (keys.x) up = 1;
-        if (keys.c) up = -1;
 
         this.target.rotateY(turn * delta * data.turnSpeed);
         this.target.translateZ(forward * delta * data.forwardSpeed);
