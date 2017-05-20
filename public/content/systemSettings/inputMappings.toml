@@ -1,0 +1,38 @@
+# forward-axis movement
+[[axis.forward]]
+    key="w"
+    amount=1
+
+[[axis.forward]]
+    key="s"
+    amount=-1
+
+[[axis.forward]]
+    gamepadAxis=1
+    amount=-1
+
+# right-axis movement
+[[axis.right]]
+    key="d"
+    amount=1
+
+[[axis.right]]
+    key="a"
+    amount=-1
+
+[[axis.right]]
+    gamepadAxis=0
+    amount=1
+
+# up-axis movement
+[[axis.up]]
+    key="x"
+    amount=1
+
+[[axis.up]]
+    key="c"
+    amount=-1
+
+# attack action
+[[action.attack]]
+    key=" "
