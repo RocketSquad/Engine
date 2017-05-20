@@ -8,6 +8,21 @@ export interface IAnimation {
     vox: string[];
 }
 
+type ProcedurallyGeneratedScalar = number | [number, number];
+export function scalar(s: ProcedurallyGeneratedScalar): number {
+    if (typeof(s) === "number") return s;
+    return Math.random() * (s[1] - s[0]) + s[0];
+}
+
+//type ProcedurallyGeneratedVector = [number,number,number] | [[number, number, number], [number,number,number]];
+export function vector(s: any): [number,number,number] {
+    if (typeof(s[0]) === "number") return s;
+    return [ 
+        Math.random() * (s[1][0] - s[0][0]) + s[0][0],
+        Math.random() * (s[1][1] - s[0][1]) + s[0][1],
+        Math.random() * (s[1][2] - s[0][2]) + s[0][2] ]
+    ;
+}
 export interface IVoxData {
     animation?: { [key: string]: IAnimation };
     size?: number;
@@ -19,10 +34,10 @@ export interface IVoxData {
 
 const BuildVoxMesh = (voxelBin, data) => {
     const builder = new MeshBuilder(voxelBin, {
-        voxelSize: data.size,
+        voxelSize:  scalar(data.size),
         vertexColor: true,
         optimizeFaces: false,
-        jitter: data.jitter
+        jitter: scalar(data.jitter)
     });
     const mesh = builder.createMesh();
     mesh.castShadow = true;
@@ -91,7 +106,7 @@ export default class VoxModel extends THREE.Object3D {
 
         this.voxHolder = new THREE.Object3D();
         if (data.position)
-            this.position.fromArray(data.position);
+            this.position.fromArray(vector(data.position));
 
         if (data.rotation)
             this.rotation.fromArray(data.rotation.map(x => x * Math.PI / 180));
