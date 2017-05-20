@@ -5,9 +5,9 @@
  */
 
 // Key state enum
-const KS_TRIGGERED = 0;
-const KS_PRESSED = 1;
-const KS_RELEASED = 2;
+export const KS_TRIGGERED = 0;
+export const KS_PRESSED = 1;
+export const KS_RELEASED = 2;
 
 const KeyLookUp = {
     13: 'enter',
@@ -48,7 +48,7 @@ function fireKeyEvents(key: string | number, keyState: number) {
     }
 }
 
-export function onKeyEvent(key: string | number, keyState: number, fn: () => {}) {
+export function onKeyEvent(key: string | number, keyState: number, fn: () => void) {
     // [TODO] figure out how to assert that keyState is valid KS_ enum
     return keyEvents[key].allSets[keyState].push(fn);
 }

@@ -8,7 +8,7 @@
     amount=-1
 
 [[axis.forward]]
-    gamepadAxis=1
+    gamepad="axis1"
     amount=-1
 
 # right-axis movement
@@ -21,7 +21,7 @@
     amount=-1
 
 [[axis.right]]
-    gamepadAxis=0
+    gamepad="axis0"
     amount=1
 
 # up-axis movement

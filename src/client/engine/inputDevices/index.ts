@@ -1,8 +1,8 @@
-import * as keyboard from './keyboard';
-import * as mouse from './mouse';
-import * as gamepad from './gamepad';
+import * as kb from './keyboard';
+import * as ms from './mouse';
+import * as gp from './gamepad';
 
 
-export const Keyboard = keyboard;
-export const Mouse = mouse;
-export const Gamepad = gamepad;
+export const keyboard = kb;
+export const mouse = ms;
+export const gamepad = gp;
