@@ -42,6 +42,10 @@ window.addEventListener('gamepaddisconnected', e => {
     console.log("disconnection event for " + index);
 });
 
+export interface IGamepadSettings {
+    deadZone?: number;
+}
+
 class GamepadEventSets {
     onPressed: Array<(value: number) => void>;
 
@@ -59,6 +63,10 @@ class GamepadEventSets {
 class GamepadEventMap {
     [key: string]: GamepadEventSets
 }
+
+const gamepadSettings: IGamepadSettings = {
+    deadZone: 0,
+};
 
 const gamepadConnectedEvents: Array<(gamepad: GamepadEventer)=>void> = [];
 const gamepadDisonnectedEvents: Array<(gamepad: GamepadEventer)=>void> = [];
@@ -107,11 +115,11 @@ function tick() {
     for(let i = 0; i < gpds.length; ++i) {
         const gamepadEventer = rawGamepadEventers[i];
         if(gamepadEventer) {
-            console.log('an eventer exists');
             const gp = gamepadEventer.gamepad;
             for(let a = 0; a < gp.axes.length; ++a) {
-                console.log('axis' + a + ' value ' + gp.axes[a]);
-                FireGamepadEvents(gamepadEventer, 'axis'+a, gp.axes[a]);
+                if(Math.abs(gp.axes[a]) > gamepadSettings.deadZone) {
+                    FireGamepadEvents(gamepadEventer, 'axis'+a, gp.axes[a]);
+                }
             }
             for(let b = 0; b < gp.buttons.length; ++b) {
                 const button = gp.buttons[b];
@@ -142,4 +150,8 @@ export function offGamepadDisconnected(handlerId: number) {
 export function addTemplateHandler(event: string, handler: (value: number) => void) {
     if(gamepadEventerTemplate[event] === undefined) gamepadEventerTemplate[event] = new GamepadEventSets();
     gamepadEventerTemplate[event].onPressed.push(handler);
+}
+
+export function setGamepadSettings(settings: IGamepadSettings) {
+    for(const prop in settings) if(settings[prop]) gamepadSettings[prop] = settings[prop];
 }

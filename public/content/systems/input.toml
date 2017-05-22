@@ -1,38 +1,42 @@
+[gamepadSettings]
+    deadZone=0.1
+
 # forward-axis movement
-[[forward]]
+[[actions.forward]]
     key="w"
     amount=1
 
-[[forward]]
+[[actions.forward]]
     key="s"
     amount=-1
 
-[[forward]]
+[[actions.forward]]
     gamepad="axis1"
     amount=-1
 
 # right-axis movement
-[[right]]
+[[actions.right]]
     key="d"
     amount=1
 
-[[right]]
+[[actions.right]]
     key="a"
     amount=-1
 
-[[right]]
+[[actions.right]]
     gamepad="axis0"
-    amount=1
+    amount=-1
 
 # up-axis movement
-[[up]]
+[[actions.up]]
     key="x"
     amount=1
 
-[[up]]
+[[actions.up]]
     key="c"
     amount=-1
 
 # attack action
-[[attack]]
+[[actions.attack]]
     key=" "
+    amount=1

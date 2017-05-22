@@ -1,4 +1,5 @@
 import * as inputDevices from './inputDevices';
+import {IGamepadSettings} from './inputDevices/gamepad';
 import * as AssetManager from './assets';
 
 const inputActions: {[action: string]: Array<(value: number)=>void>} = {};
@@ -11,14 +12,17 @@ interface IInputMapping {
 }
 
 interface IInputActionMap {
-    [action: string]: IInputMapping[];
+    gamepadSettings: IGamepadSettings;
+    actions: {[action: string]: IInputMapping[]};
 }
 
 function setupInputMappings(inputActionMap: IInputActionMap) {
     console.log('mapping ' + JSON.stringify(inputActionMap));
-    for(const action in inputActionMap) {
-        if(inputActionMap[action]) {
-            for(const mapping of inputActionMap[action]) {
+
+    inputDevices.gamepad.setGamepadSettings(inputActionMap.gamepadSettings);
+    for(const action in inputActionMap.actions) {
+        if(inputActionMap.actions[action]) {
+            for(const mapping of inputActionMap.actions[action]) {
                 if(mapping.gamepad) {
                     const gp = inputDevices.gamepad;
                     gp.addTemplateHandler(mapping.gamepad, value => {fireActions(action, mapping.amount * value);});
