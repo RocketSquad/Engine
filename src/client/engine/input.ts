@@ -5,7 +5,7 @@ const inputActions: {[action: string]: Array<(value: number)=>void>} = {};
 const fireActions = (action: string, value: number) => {inputActions[action].forEach(fn => fn(value));};
 
 interface IInputMapping {
-    gamepad?: string|number;
+    gamepad?: string;
     key?: string|number;
     amount: number;
 }
@@ -20,7 +20,8 @@ function setupInputMappings(inputActionMap: IInputActionMap) {
         if(inputActionMap[action]) {
             for(const mapping of inputActionMap[action]) {
                 if(mapping.gamepad) {
-                    // inputDevices.gamepad. SHIT how do I handle this?? whiteboard time
+                    const gp = inputDevices.gamepad;
+                    gp.addTemplateHandler(mapping.gamepad, value => {fireActions(action, mapping.amount * value);});
                 } else if(mapping.key) {
                     console.log(`mapping ${mapping.key} with value ${mapping.amount}`);
                     inputDevices.keyboard.onKeyEvent(mapping.key, inputDevices.keyboard.KS_PRESSED, () => {

@@ -12,6 +12,8 @@ const GamepadButtonLookup = {
     5: 'r1',
     6: 'l2',
     7: 'r2',
+    8: 'select',
+    9: 'start',
     10: 'l3',
     11: 'r3',
     12: 'dup',
@@ -68,9 +70,11 @@ export class GamepadEventer {
     gamepadEvents: GamepadEventMap;
 
     constructor(gamepad: Gamepad) {
+        this.gamepad = gamepad;
         this.gamepadEvents = new GamepadEventMap();
         for(const event in gamepadEventerTemplate) {
             if(gamepadEventerTemplate[event]) {
+                console.log('added input mapping for ' + event);
                 this.gamepadEvents[event] = new GamepadEventSets().copy(gamepadEventerTemplate[event]);
             }
         }
@@ -94,18 +98,19 @@ function FireGamepadEvents(gamepad: GamepadEventer, button: string | number, val
     }
 }
 
-const gamepadEventers: GamepadEventer[] = [];
-
 function tick() {
     requestAnimationFrame(tick);
 
     // Handle gamepads
     const gpds = navigator.getGamepads();
 
-    for(const gamepadEventer of gamepadEventers) {
+    for(let i = 0; i < gpds.length; ++i) {
+        const gamepadEventer = rawGamepadEventers[i];
         if(gamepadEventer) {
+            console.log('an eventer exists');
             const gp = gamepadEventer.gamepad;
             for(let a = 0; a < gp.axes.length; ++a) {
+                console.log('axis' + a + ' value ' + gp.axes[a]);
                 FireGamepadEvents(gamepadEventer, 'axis'+a, gp.axes[a]);
             }
             for(let b = 0; b < gp.buttons.length; ++b) {
@@ -132,4 +137,9 @@ export function onGamepadDisconnected(handler: (gamepad: GamepadEventer) => void
 
 export function offGamepadDisconnected(handlerId: number) {
     delete gamepadDisonnectedEvents[handlerId];
+}
+
+export function addTemplateHandler(event: string, handler: (value: number) => void) {
+    if(gamepadEventerTemplate[event] === undefined) gamepadEventerTemplate[event] = new GamepadEventSets();
+    gamepadEventerTemplate[event].onPressed.push(handler);
 }
