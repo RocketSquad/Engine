@@ -4,6 +4,7 @@ import { Gets, Get } from '../engine/assets';
 import { State, IEntity } from '../engine/state';
 
 import CharacterController from '../systems/character-controller';
+import {Render} from '../systems/render';
 import * as uuid from 'uuid';
 
 export let current: Scene;
@@ -13,7 +14,9 @@ export default class Scene extends THREE.Scene {
     send: (msg: any) => Promise<any>;
     player: THREE.Object3D;
     players: { [key: string]: THREE.Object3D};
-    state = new State();
+    state = new State({
+        render: new Render()
+    });
 
     constructor(scenePromise: Promise<IEntity>) {
         super();

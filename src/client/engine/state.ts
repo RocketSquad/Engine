@@ -1,4 +1,5 @@
 import {Get, On} from './assets';
+import {ISystem} from './system';
 
 export interface IEntity {
     id?: string;
@@ -17,6 +18,18 @@ export type FEntityUpdateHandler = (entity: IEntity) => void;
 export class State {
     private handlers: {[key: string]: FEntityUpdateHandler[]} = {};
     private map = new Map<string, IEntity>();
+    private systems: {[key: string]: ISystem};
+    private clock = Date.now();
+
+    constructor(systems: {[key: string]: ISystem}) {
+        this.systems = systems;
+        Object.keys(this.systems).forEach(sysKey => {
+            systems[sysKey].Start(this);
+        });
+        this.tick = this.tick.bind(this);
+
+        this.tick();
+    }
 
     off(key: string, fn: FEntityUpdateHandler) {
         const handlers = this.handlers[key] = this.handlers[key] || [];
@@ -58,9 +71,9 @@ export class State {
                 this.set(`${key}.${hasKey}`, exEntity.has[hasKey]);
             });
         }
+
         if(entity.is) {
             On(entity.is, async () => {
-                console.log('Template update', entity.is);
                 this.fire(key);
             });
         }
@@ -95,11 +108,43 @@ export class State {
         return result;
     }
 
+    private tick() {
+        requestAnimationFrame(this.tick);
+        const now = Date.now();
+        const delta = now - this.clock;
+        this.clock = now;
+        
+        Object.keys(this.systems).forEach(sysKey => {
+            const system = this.systems[sysKey];
+            system.Tick(delta);
+        });
+    }
+
     private async fire(key: string, deleted = false) {
         const handlers = this.handlers[key] || [];
         const val = deleted ? undefined : await this.get(key);
-        console.log('firing', key);
         handlers.forEach(fn => fn(val));
+
+        // we fire whenever shit changes...
+        // good time to check to see if systems need updated
+        // man do we need deltas
+        Object.keys(this.systems).forEach(sysKey => {
+            const system = this.systems[sysKey];
+            const hasEntity = system.Has(val);
+
+            if(hasEntity && deleted) {
+                return system.Remove(val);
+            }
+
+            const hasComponent = val[sysKey] !== undefined;
+            if(hasComponent && !hasEntity) {
+                return system.Add(val);
+            }
+
+            if(!hasComponent && hasEntity) {
+                return system.Remove(val);
+            }
+        });
     }
 
     // Probably needs to be cached so we don't do this all the time

@@ -1,6 +1,6 @@
-cameraOffset = [0, 4, 10]
+cameraOffset = [10, 14, 10]
 cameraLookAt = [0, 0, 1]
 cameraLerp = 1
-turnSpeed = 5
-forwardSpeed = 1
+turnSpeed = 50
+forwardSpeed = 5
 

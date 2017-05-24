@@ -7,3 +7,7 @@ jitter = 2
     vox = [
         "tiles/tree.vox"
     ]
+
+[has.apple]
+    position = [-5, 2, 0]
+    is = "content/character/apple.toml"

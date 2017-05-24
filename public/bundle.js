@@ -63,7 +63,7 @@
 /******/ 	__webpack_require__.p = "";
 /******/
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = 7);
+/******/ 	return __webpack_require__(__webpack_require__.s = 8);
 /******/ })
 /************************************************************************/
 /******/ ([
@@ -82,8 +82,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 // Load Vox/TOML files from a file
 const vox_1 = __webpack_require__(2);
 const socket_1 = __webpack_require__(5);
-const b64 = __webpack_require__(10);
-const toml = __webpack_require__(13);
+const b64 = __webpack_require__(12);
+const toml = __webpack_require__(15);
 const ASSETS = {};
 const Memoize = (file, action) => ASSETS[file] ? ASSETS[file] : Set(file, action(file));
 // oh baby alignment
@@ -1073,14 +1073,17 @@ const md5 = MD5_hexhash;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const THREE = __webpack_require__(0);
-const vox_1 = __webpack_require__(8);
+const vox_1 = __webpack_require__(9);
 const assets_1 = __webpack_require__(1);
 const state_1 = __webpack_require__(6);
-const character_controller_1 = __webpack_require__(9);
+const character_controller_1 = __webpack_require__(10);
+const render_1 = __webpack_require__(11);
 class Scene extends THREE.Scene {
     constructor(scenePromise) {
         super();
-        this.state = new state_1.State();
+        this.state = new state_1.State({
+            render: new render_1.Render()
+        });
         this.setupScene(scenePromise);
         this.clock = new THREE.Clock();
         window.scene = this;
@@ -1265,9 +1268,16 @@ const assets_1 = __webpack_require__(1);
 // should not handle has updates
 // any has should probably be its own State
 class State {
-    constructor() {
+    constructor(systems) {
         this.handlers = {};
         this.map = new Map();
+        this.clock = Date.now();
+        this.systems = systems;
+        Object.keys(this.systems).forEach(sysKey => {
+            systems[sysKey].Start(this);
+        });
+        this.tick = this.tick.bind(this);
+        this.tick();
     }
     off(key, fn) {
         const handlers = this.handlers[key] = this.handlers[key] || [];
@@ -1306,7 +1316,6 @@ class State {
         }
         if (entity.is) {
             assets_1.On(entity.is, async () => {
-                console.log('Template update', entity.is);
                 this.fire(key);
             });
         }
@@ -1333,11 +1342,37 @@ class State {
         });
         return result;
     }
+    tick() {
+        requestAnimationFrame(this.tick);
+        const now = Date.now();
+        const delta = now - this.clock;
+        this.clock = now;
+        Object.keys(this.systems).forEach(sysKey => {
+            const system = this.systems[sysKey];
+            system.Tick(delta);
+        });
+    }
     async fire(key, deleted = false) {
         const handlers = this.handlers[key] || [];
         const val = deleted ? undefined : await this.get(key);
-        console.log('firing', key);
         handlers.forEach(fn => fn(val));
+        // we fire whenever shit changes...
+        // good time to check to see if systems need updated
+        // man do we need deltas
+        Object.keys(this.systems).forEach(sysKey => {
+            const system = this.systems[sysKey];
+            const hasEntity = system.Has(val);
+            if (hasEntity && deleted) {
+                return system.Remove(val);
+            }
+            const hasComponent = val[sysKey] !== undefined;
+            if (hasComponent && !hasEntity) {
+                return system.Add(val);
+            }
+            if (!hasComponent && hasEntity) {
+                return system.Remove(val);
+            }
+        });
     }
     // Probably needs to be cached so we don't do this all the time
     expandEntity(e, expand = false) {
@@ -1361,6 +1396,39 @@ exports.State = State;
 
 /***/ }),
 /* 7 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+class System {
+    constructor() {
+        this.entities = [];
+    }
+    Start(state) {
+        this.state = state;
+    }
+    Stop() {
+        // no-op
+    }
+    Add(entity) {
+        this.entities.push(entity.id);
+    }
+    Remove(entity) {
+        this.entities.splice(this.entities.indexOf(entity.id), 1);
+    }
+    Has(entity) {
+        return this.entities.indexOf(entity.id) !== -1;
+    }
+    Tick(delta) {
+        // no-op
+    }
+}
+exports.System = System;
+
+
+/***/ }),
+/* 8 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -1407,13 +1475,13 @@ render();
 
 
 /***/ }),
-/* 8 */
+/* 9 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const path = __webpack_require__(11);
+const path = __webpack_require__(13);
 const THREE = __webpack_require__(0);
 const vox_1 = __webpack_require__(2);
 const assets_1 = __webpack_require__(1);
@@ -1510,7 +1578,7 @@ exports.default = VoxModel;
 
 
 /***/ }),
-/* 9 */
+/* 10 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -1584,7 +1652,48 @@ exports.default = CharacterController;
 
 
 /***/ }),
-/* 10 */
+/* 11 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const system_1 = __webpack_require__(7);
+const THREE = __webpack_require__(0);
+class Render extends system_1.System {
+    constructor() {
+        super(...arguments);
+        // Entire Scene
+        this.scene = new THREE.Scene();
+        this.entityMap = {};
+    }
+    UpdateO3D(entity) {
+        const o3d = this.entityMap[entity.id];
+        const t = entity.transform;
+        if (t) {
+            o3d.position.fromArray(entity.transform.position);
+        }
+    }
+    Add(entity) {
+        super.Add(entity);
+        const o3d = this.entityMap[entity.id] = new THREE.Object3D();
+        const list = entity.id.split('.');
+        const parent = list.length > 1
+            ? this.entityMap[list.slice(0, -1).join('.')]
+            : this.scene;
+        parent.add(o3d);
+        this.UpdateO3D(entity);
+    }
+    Remove(entity) {
+        super.Remove(entity);
+        this.entityMap[entity.id];
+    }
+}
+exports.Render = Render;
+
+
+/***/ }),
+/* 12 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -1705,7 +1814,7 @@ function fromByteArray (uint8) {
 
 
 /***/ }),
-/* 11 */
+/* 13 */
 /***/ (function(module, exports, __webpack_require__) {
 
 /* WEBPACK VAR INJECTION */(function(process) {// Copyright Joyent, Inc. and other Node contributors.
@@ -1933,10 +2042,10 @@ var substr = 'ab'.substr(-1) === 'b'
     }
 ;
 
-/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(12)))
+/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(14)))
 
 /***/ }),
-/* 12 */
+/* 14 */
 /***/ (function(module, exports) {
 
 // shim for using process in browser
@@ -2126,11 +2235,11 @@ process.umask = function() { return 0; };
 
 
 /***/ }),
-/* 13 */
+/* 15 */
 /***/ (function(module, exports, __webpack_require__) {
 
-var parser = __webpack_require__(15);
-var compiler = __webpack_require__(14);
+var parser = __webpack_require__(17);
+var compiler = __webpack_require__(16);
 
 module.exports = {
   parse: function(input) {
@@ -2141,7 +2250,7 @@ module.exports = {
 
 
 /***/ }),
-/* 14 */
+/* 16 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -2345,7 +2454,7 @@ module.exports = {
 
 
 /***/ }),
-/* 15 */
+/* 17 */
 /***/ (function(module, exports) {
 
 module.exports = (function() {
