@@ -1,6 +1,6 @@
 import * as WebSocket from 'ws';
 import {Server} from 'http';
-import {IMessage} from '../common/message';
+import {IMessage} from 'common/engine/message';
 
 let userIds = 0;
 const Users = new Map();

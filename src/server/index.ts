@@ -1,5 +1,5 @@
 import * as express from 'express';
-import * as ws from './ws';
+import * as ws from './engine/ws';
 import './assets';
 
 const http = require('http');

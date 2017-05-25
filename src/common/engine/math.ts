@@ -1,9 +1,7 @@
-
-
 export default class RMath {
     // Real men use radians
-    static pi = 3.141592653;
-    static tau = 2*RMath.pi;
+    static pi = Math.PI;
+    static tau = 2 * Math.PI;
     static degreeToRad = RMath.pi/180;
     static radToDegree = 180/RMath.pi;
     static SmallestAngleBetweenAngles(target: number, source: number) {

@@ -1,6 +1,6 @@
 // Load Vox/TOML files from a file
-import {Parse, MeshBuilder} from './vox';
-import {Send, On as SocketOn, IMessage} from './socket';
+import {Parse} from './vox';
+import {Socket, IMessage} from './socket';
 
 const b64 = require('base64-js');
 const toml = require('toml');
@@ -69,7 +69,7 @@ const Set = (file: string, dataPromise: Promise<any>) => {
     return dataPromise;
 };
 
-SocketOn('asset', (msg: IMessage) => {
+Socket.on('asset', (msg: IMessage) => {
     const result = msg.payload;
     if(result.path.indexOf('.vox') !== -1) {
         result.data = Parse(FromBase64(result.data));
@@ -78,11 +78,11 @@ SocketOn('asset', (msg: IMessage) => {
     } else {
         console.log('Unhandled asset', msg);
     }
-    console.log('SET', result.path);
+
     Set(result.path, Promise.resolve(result.data));
 });
 
-export const Off = (file: string, callback: WatcherHandler) => {
+const Off = (file: string, callback: WatcherHandler) => {
     const handlers = Watchers[file] || [];
     const idx = handlers.indexOf(callback);
 
@@ -93,18 +93,18 @@ export const Off = (file: string, callback: WatcherHandler) => {
     return idx !== -1;
 };
 
-export const Watch = async (file: string, callback: WatcherHandler) => {
+const Watch = async (file: string, callback: WatcherHandler) => {
     On(file, callback);
     callback(await Get(file));
 };
 
-export const On = (file: string, callback: WatcherHandler) => {
+const On = (file: string, callback: WatcherHandler) => {
     const handlers = Watchers[file] || [];
     handlers.push(callback);
     Watchers[file] = handlers;
 };
 
-export const Get = (file: string) => Memoize(file, () => {
+const Get = (file: string) => Memoize(file, () => {
     return fetch(file).then((dataResponse) => {
         let processing = Promise.resolve(dataResponse);
 
@@ -119,7 +119,7 @@ export const Get = (file: string) => Memoize(file, () => {
     });
 });
 
-export const Gets = (files: {[key: string]: string}) => {
+const Gets = (files: {[key: string]: string}) => {
     const returnObj: any = {};
     Object.keys(files).forEach(key => {
         returnObj[key] = Get(files[key]);
@@ -127,4 +127,12 @@ export const Gets = (files: {[key: string]: string}) => {
 
     returnObj.all = Promise.all(Object.keys(returnObj).map(key => returnObj[key]));
     return returnObj;
+};
+
+export const Asset = {
+    get: Get,
+    gets: Gets,
+    on: On,
+    watch: Watch,
+    off: Off
 };

@@ -1,7 +1,6 @@
 import * as THREE from 'three';
-import * as Input from '../engine/input';
-import Vox from '../o3d/vox';
-import {Get, On, Watch} from '../engine/assets';
+import * as Input from 'client/engine/input';
+import {Asset} from 'common/engine/assets';
 
 interface IControllerData {
     turnSpeed: number;
@@ -23,8 +22,7 @@ let data: IControllerData = {
     cameraLookAt: [0, 0, 0]
 };
 
-Watch('content/controller/character.toml', (newData) => {
-    console.log('got', newData);
+Asset.watch('content/controller/character.toml', (newData) => {
     data = newData;
 });
 

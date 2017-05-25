@@ -1,5 +1,4 @@
-import {IMessage} from '../../common/message';
-console.log('connecting to ', location.host, location.port);
+import {IMessage} from 'common/engine/message';
 
 let handlerId = 0;
 const handlers = {};
@@ -11,14 +10,11 @@ export type IMessage = IMessage;
 const makeConnection = () => {
     const ws = new WebSocket(`ws://${location.host}`);
     ws.addEventListener('open', () => {
-        console.log('connected');
         wsRes(ws);
     });
 
     ws.addEventListener('close', () => {
-        console.log('closed');
         wsReady = new Promise(res => wsRes = res);
-        console.log('attempting reconnect...');
         setTimeout(() => {
             makeConnection();
         }, 1000);
@@ -37,17 +33,19 @@ const makeConnection = () => {
 
 makeConnection();
 
-export const Off = (id: number) => {
-    delete handlers[id];
-};
+export const Socket = {
+    off(id: number) {
+        delete handlers[id];
+    },
 
-export const On = (wildcard: string, msgHandler)  => {
-    handlerId++;
-    handlers[handlerId] = [wildcard, msgHandler];
+    on(wildcard: string, msgHandler) {
+        handlerId++;
+        handlers[handlerId] = [wildcard, msgHandler];
 
-    return handlerId;
-};
+        return handlerId;
+    },
 
-export const Send = (msg) => {
-    wsReady.then((ws) => ws.send(JSON.stringify(msg)));
+    send(msg) {
+        wsReady.then((ws) => ws.send(JSON.stringify(msg)));
+    }
 };

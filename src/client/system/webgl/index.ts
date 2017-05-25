@@ -1,7 +1,8 @@
-import {ISystem, System} from '../engine/system';
-import {IEntity, State} from '../engine/state';
+import {ISystem, System} from 'common/engine/system';
+import {IEntity, State} from 'common/engine/state';
+
 import * as THREE from 'three';
-import {IVoxData} from '../o3d/vox';
+import {IVoxData} from './o3d/vox';
 
 interface ITransformComponent {
     size?: number | number[];
@@ -13,9 +14,9 @@ interface IRenderComponent {
     vox: IVoxData;
 }
 
-export class Render extends System {
+export class WebGL extends System {
     // Entire Scene
-    public scene = new THREE.Scene();
+    private scene = new THREE.Scene();
     private entityMap: {[key: string]: THREE.Object3D} = {};
 
     UpdateO3D(entity: IEntity) {

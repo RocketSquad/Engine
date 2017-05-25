@@ -1,11 +1,11 @@
 {
     "compilerOptions": {
-        "outDir": "./gen/",
+        "outDir": "./node_modules/",
         "lib": ["es2017", "dom"],
         "module": "commonjs",
         "target": "es2017",
         "jsx": "react",
-        "allowJs": true
+        "declaration": true
     },
     "include": [
         "src/**/*"

@@ -1,9 +1,8 @@
 import * as THREE from 'three';
 import Vox, { IVoxData } from './vox';
-import { Gets, Get } from '../engine/assets';
-import { State, IEntity } from '../engine/state';
+import { Asset } from 'common/engine/asset';
+import { State, IEntity } from 'common/engine/state';
 
-import CharacterController from '../systems/character-controller';
 import {Render} from '../systems/render';
 import * as uuid from 'uuid';
 

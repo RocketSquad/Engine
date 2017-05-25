@@ -21,7 +21,6 @@ module.exports = {
         ]
     },
     externals: {
-        'three': 'THREE',
-        'ammo': ''
+        'three': 'THREE'
     }
 };

@@ -1,7 +1,7 @@
 import * as path from 'path';
 import * as THREE from 'three';
-import { MeshBuilder } from '../engine/vox';
-import { Get, On } from '../engine/assets';
+import { MeshBuilder } from '../lib/VoxMeshBuilder';
+import { Asset } from 'common/engine/asset';
 
 export interface IAnimation {
     speed: number;

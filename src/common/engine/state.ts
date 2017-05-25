@@ -1,4 +1,4 @@
-import {Get, On} from './assets';
+import {Asset} from './asset';
 import {ISystem} from './system';
 
 export interface IEntity {
@@ -14,7 +14,7 @@ export type FEntityUpdateHandler = (entity: IEntity) => void;
 // and wildcards
 // should autohandle is updates
 // should not handle has updates
-// any has should probably be its own State
+// should handle reducers/have a set of reducers
 export class State {
     private handlers: {[key: string]: FEntityUpdateHandler[]} = {};
     private map = new Map<string, IEntity>();
@@ -24,7 +24,7 @@ export class State {
     constructor(systems: {[key: string]: ISystem}) {
         this.systems = systems;
         Object.keys(this.systems).forEach(sysKey => {
-            systems[sysKey].Start(this);
+            systems[sysKey].start(this);
         });
         this.tick = this.tick.bind(this);
 
@@ -73,7 +73,7 @@ export class State {
         }
 
         if(entity.is) {
-            On(entity.is, async () => {
+            Asset.on(entity.is, async () => {
                 this.fire(key);
             });
         }
@@ -116,7 +116,7 @@ export class State {
         
         Object.keys(this.systems).forEach(sysKey => {
             const system = this.systems[sysKey];
-            system.Tick(delta);
+            system.tick(delta);
         });
     }
 
@@ -130,19 +130,19 @@ export class State {
         // man do we need deltas
         Object.keys(this.systems).forEach(sysKey => {
             const system = this.systems[sysKey];
-            const hasEntity = system.Has(val);
+            const hasEntity = system.has(val);
 
             if(hasEntity && deleted) {
-                return system.Remove(val);
+                return system.remove(val);
             }
 
             const hasComponent = val[sysKey] !== undefined;
             if(hasComponent && !hasEntity) {
-                return system.Add(val);
+                return system.add(val);
             }
 
             if(!hasComponent && hasEntity) {
-                return system.Remove(val);
+                return system.remove(val);
             }
         });
     }
@@ -156,7 +156,7 @@ export class State {
 
             if(e.is) {
                 // Get handles resolving is's
-                Object.assign(data, await Get(e.is), {is: undefined});
+                Object.assign(data, await Asset.get(e.is), {is: undefined});
             }
 
             Object.assign(data, e, {
