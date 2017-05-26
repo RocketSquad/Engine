@@ -29,7 +29,7 @@ export class System implements ISystem {
     stop() {
         // no-op
     }
-    
+
     update(entity: IEntity) {
         // no-op
     }

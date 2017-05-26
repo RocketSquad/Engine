@@ -1,7 +1,7 @@
 [vox]
     default = "idle"
-    size = 0.1
-    jitter = 0.1
+    size = 0.5
+    jitter = 0
 
 [vox.animation.idle]
     speed = 1000

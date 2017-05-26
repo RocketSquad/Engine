@@ -4,6 +4,8 @@ import {IEntity, State} from 'common/engine/state';
 import * as THREE from 'three';
 import {IVoxComponent, VoxMesh} from './o3d/vox-mesh';
 
+const gravity = -9.8;
+
 const throttle = (type: string, name: string, obj?: any) => {
     obj = obj || window;
     let running = false;
@@ -49,19 +51,19 @@ const LightUpdate = (light, data) => {
 
 const TransformUpdate = (o3d, data) => {
     if(data.position)
-        o3d.position.fromArray(data.position);
-    if(data.rotation)
-        o3d.rotation.fromArray(data.rotation.map(THREE.Math.radToDeg));
+        o3d.position.fromArray(data.position.map(x => x));
+    if(data.rotation) {
+        o3d.rotation.fromArray(data.rotation.map(THREE.Math.degToRad));
+    }
 };
 
 const TargetUpdate = (o3d, data) => {
     TransformUpdate(o3d, data);
     if(data.target)
-        o3d.target.fromArray(data.target);
+        o3d.lookAt(new THREE.Vector3().fromArray(data.target));
 };
 
 export class WebGL extends System {
-    // Use me if.. you have
     public components = {
         directional: 'IDirectionalLightComponent',
         ambient: 'ILightComponent',
@@ -74,6 +76,7 @@ export class WebGL extends System {
     private entityMap: {[key: string]: THREE.Object3D} = {};
     private camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
     private renderer =  new THREE.WebGLRenderer({ antialias: true });
+    private bodies: {[key: string]: any} = {};
 
     start() {
         (window as any).scene = this.scene;
@@ -84,12 +87,22 @@ export class WebGL extends System {
     }
 
     update(entity: IEntity) {
-        this.updateO3D(entity);
+        const o3d = this.updateO3D(entity);
+
+        if(entity.body) {
+            const body = this.bodies[entity.id];
+            body.update();
+            body.mass = entity.body.mass;
+        }
     }
 
     add(entity: IEntity) {
         super.add(entity);
-        this.updateO3D(entity);
+        const o3d = this.updateO3D(entity, true);
+        if(entity.body) {
+            const body = this.bodies[entity.id] = new THREE.BoundingBoxHelper(o3d);
+            (body as any).mass = entity.body.mass;
+        }
     }
 
     remove(entity: IEntity) {
@@ -97,6 +110,7 @@ export class WebGL extends System {
         const obj = this.entityMap[entity.id];
         obj.parent.remove(obj);
         delete this.entityMap[entity.id];
+        delete this.bodies[entity.id];
     }
 
     tick(delta: number) {
@@ -109,7 +123,7 @@ export class WebGL extends System {
     }
 
     // Delta updates sure would be nice
-    private updateO3D(entity: IEntity) {
+    private updateO3D(entity: IEntity, created = false) {
         const o3d = this.get(entity.id);
         const t: ITransformComponent = entity;
 
@@ -173,6 +187,8 @@ export class WebGL extends System {
 
             TargetUpdate(camObj, camera);
         }
+
+        return o3d;
     }
 
     private get(entityId: string) {

@@ -1,27 +1,41 @@
 [has.player]
-    is = 'content/character/rain.toml'
-    position = [0, 2, 0]
+    is = 'content/character/sword.toml'
+    position = [0, 5, 0]
+
+[has.player.body]
+    mass = 200
+    size = [1, 1, 1]
 
 [has.player.controller]
-    turnSpeed =  1
-    forwardSpeed = 1
+    turnSpeed =  5
+    forwardSpeed = 2
     cameraLerp = 1
-    cameraOffset = [0, 5, 5]
+    cameraOffset = [5, 12, 5]
     cameraLookAt = [0, 0, 0]
 
 [has.floor]
     is = 'content/fallback/floor.toml'
-    position = [0, 0, 0]
+    position = [0, 1, 0]
+
+[has.floor.body]
+    mass = 0
+    size = [20.0, 1.0, 15.0]
+
+[has.floor2]
+    is = 'content/fallback/floor.toml'
+    position = [0, 1, 5]
+
+[has.floor2.body]
+    mass = 0
+    size = [20.0, 1.0, 15.0]
+# [has.another_floor]
+#     is = 'content/fallback/floor.toml'
+#     position = [-15, 0, 0]
 
 [has.background]
     is = 'content/fallback/background.toml'
-    position = [0, -10, -2]
-    size = 0.9
+    position = [0, 0, -2]
     rotation = [0, 90, 0]
-
-[has.another_floor]
-    is = 'content/fallback/floor.toml'
-    position = [-15, 0, 0]
 
 [has.ambient_light.ambient]
     color = 16777215

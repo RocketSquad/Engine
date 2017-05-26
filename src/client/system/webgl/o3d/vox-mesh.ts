@@ -8,21 +8,6 @@ export interface IAnimation {
     vox: string[];
 }
 
-// The crap?
-export type ProcedurallyGeneratedScalar = number | [number, number];
-export function scalar(s: ProcedurallyGeneratedScalar): number {
-    if (typeof(s) === "number") return s;
-    return Math.random() * (s[1] - s[0]) + s[0];
-}
-export function vector(s: any): [number,number,number] {
-    if (typeof(s[0]) === "number") return s;
-    return [
-        Math.random() * (s[1][0] - s[0][0]) + s[0][0],
-        Math.random() * (s[1][1] - s[0][1]) + s[0][1],
-        Math.random() * (s[1][2] - s[0][2]) + s[0][2] ]
-    ;
-}
-
 export interface IVoxComponent {
     animation?: { [key: string]: IAnimation };
     size?: number;
@@ -34,10 +19,10 @@ export interface IVoxComponent {
 
 const BuildVoxMesh = (voxelBin, data) => {
     const builder = new MeshBuilder(voxelBin, {
-        voxelSize:  scalar(data.size),
+        voxelSize:  data.size,
         vertexColor: true,
         optimizeFaces: false,
-        jitter: scalar(data.jitter)
+        jitter: data.jitter || 0
     });
     const mesh = builder.createMesh();
     mesh.castShadow = true;

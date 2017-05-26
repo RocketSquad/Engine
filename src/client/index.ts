@@ -1,5 +1,5 @@
 import {State, IEntity} from 'common/engine/state';
-import {Physics} from 'common/system/physics';
+import {Physics} from 'common/system/oimo-physics';
 import {WebGL} from 'client/system/webgl';
 import {Controller} from 'client/system/controller';
 import {Asset} from 'common/engine/asset';

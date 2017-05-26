@@ -27,12 +27,13 @@ const defaultTransform = {
 export class Controller extends System {
     // used for three math operations
     private static t3d = new THREE.Object3D();
-
+    
     public components = {
         controller: 'IControllerComponent',
         camera: 'ICameraComponent'
     };
 
+    private cooldown = 0;
     private camera: IEntity;
     private controllers: {[key: string]: IEntity} = {};
 
@@ -73,6 +74,7 @@ export class Controller extends System {
     }
 
     tick(delta) {
+        this.cooldown -= delta;
         Object.keys(this.controllers).forEach(key => {
             const entity = this.controllers[key];
 
@@ -83,18 +85,23 @@ export class Controller extends System {
             const keys = Input.keyboard.rawKeys;
 
             const forward = (keys.w && -1) || (keys.s && 1) || 0;
-            const turn = (keys.a && -1) || (keys.d && 1) || 0;
+            const turn = (keys.a && 1) || (keys.d && -1) || 0;
             const up = (keys.x && -1) || (keys.c && 1) || 0;
 
             t3d.position.fromArray(entity.position);
-            t3d.rotation.fromArray(entity.rotation.map(THREE.Math.degToRad));
+            t3d.rotation.fromArray((entity.rotation || [0, 0, 0]).map(THREE.Math.degToRad));
 
             t3d.rotateY(turn * delta * controls.turnSpeed);
             t3d.translateZ(forward * delta * controls.forwardSpeed);
             t3d.translateY(up * delta * controls.forwardSpeed);
 
-            entity.position = t3d.position.toArray();
+            entity.body.velocity = t3d.position.toArray().map((n, i) => (n - entity.position[i]) * 100);
             entity.rotation = t3d.rotation.toArray().slice(0, 3).map(THREE.Math.radToDeg);
+
+            if(keys.space && this.cooldown < 0) {
+                entity.body.velocity[1] = 100;
+                this.cooldown = 1;
+            }
 
             this.state.set(entity.id, entity);
             if(this.camera) {
@@ -105,15 +112,11 @@ export class Controller extends System {
                 const camPosition = t3d.position.clone().add(new THREE.Vector3().fromArray(controls.cameraOffset));
 
                 t3d.position.fromArray(camera.position);
-                t3d.rotation.fromArray(camera.rotation);
+                t3d.rotation.fromArray(camera.rotation.map(THREE.Math.degToRad));
 
                 t3d.position.lerp(camPosition, controls.cameraLerp);
-                t3d.lookAt(dstPosition);
-
+                camera.target = dstPosition.toArray();
                 camera.position = t3d.position.toArray();
-                //camera.rotation = t3d.rotation.toArray().slice(0, 3).map(THREE.Math.radToDeg);
-
-                console.log(this.camera.id, this.camera);
                 this.state.set(this.camera.id, this.camera);
             }
         });
