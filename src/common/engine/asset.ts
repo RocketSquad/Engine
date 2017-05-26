@@ -95,7 +95,7 @@ const Off = (file: string, callback: WatcherHandler) => {
 
 const Watch = async (file: string, callback: WatcherHandler) => {
     On(file, callback);
-    callback(await Get(file));
+    Get(file);
 };
 
 const On = (file: string, callback: WatcherHandler) => {

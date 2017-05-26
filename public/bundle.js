@@ -63,27 +63,21 @@
 /******/ 	__webpack_require__.p = "";
 /******/
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = 8);
+/******/ 	return __webpack_require__(__webpack_require__.s = 12);
 /******/ })
 /************************************************************************/
 /******/ ([
 /* 0 */
-/***/ (function(module, exports) {
-
-module.exports = THREE;
-
-/***/ }),
-/* 1 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 // Load Vox/TOML files from a file
-const vox_1 = __webpack_require__(2);
-const socket_1 = __webpack_require__(5);
-const b64 = __webpack_require__(12);
-const toml = __webpack_require__(15);
+const vox_1 = __webpack_require__(16);
+const socket_1 = __webpack_require__(15);
+const b64 = __webpack_require__(17);
+const toml = __webpack_require__(20);
 const ASSETS = {};
 const Memoize = (file, action) => ASSETS[file] ? ASSETS[file] : Set(file, action(file));
 // oh baby alignment
@@ -105,7 +99,7 @@ const resolveFile = async (fileData, file) => {
         chain.push(file);
         InheritanceUp[fileData.is] = chain;
         InheritanceDown[file] = fileData.is;
-        const subData = await exports.Get(fileData.is);
+        const subData = await Get(fileData.is);
         Object.assign(subData, fileData, {
             has: Object.assign(subData.has, fileData.has)
         });
@@ -121,7 +115,7 @@ const resolveFile = async (fileData, file) => {
     }
     return fileData;
 };
-const Fire = (file) => exports.Get(file).then(data => {
+const Fire = (file) => Get(file).then(data => {
     const handlers = Watchers[file];
     if (handlers) {
         handlers.forEach(fn => fn(data, file));
@@ -138,7 +132,7 @@ const Set = (file, dataPromise) => {
     Fire(file);
     return dataPromise;
 };
-socket_1.On('asset', (msg) => {
+socket_1.Socket.on('asset', (msg) => {
     const result = msg.payload;
     if (result.path.indexOf('.vox') !== -1) {
         result.data = vox_1.Parse(FromBase64(result.data));
@@ -149,10 +143,9 @@ socket_1.On('asset', (msg) => {
     else {
         console.log('Unhandled asset', msg);
     }
-    console.log('SET', result.path);
     Set(result.path, Promise.resolve(result.data));
 });
-exports.Off = (file, callback) => {
+const Off = (file, callback) => {
     const handlers = Watchers[file] || [];
     const idx = handlers.indexOf(callback);
     if (idx !== -1) {
@@ -160,16 +153,16 @@ exports.Off = (file, callback) => {
     }
     return idx !== -1;
 };
-exports.Watch = async (file, callback) => {
-    exports.On(file, callback);
-    callback(await exports.Get(file));
+const Watch = async (file, callback) => {
+    On(file, callback);
+    Get(file);
 };
-exports.On = (file, callback) => {
+const On = (file, callback) => {
     const handlers = Watchers[file] || [];
     handlers.push(callback);
     Watchers[file] = handlers;
 };
-exports.Get = (file) => Memoize(file, () => {
+const Get = (file) => Memoize(file, () => {
     return fetch(file).then((dataResponse) => {
         let processing = Promise.resolve(dataResponse);
         Object.keys(postProcess).some(key => {
@@ -181,15 +174,28 @@ exports.Get = (file) => Memoize(file, () => {
         return processing;
     });
 });
-exports.Gets = (files) => {
+const Gets = (files) => {
     const returnObj = {};
     Object.keys(files).forEach(key => {
-        returnObj[key] = exports.Get(files[key]);
+        returnObj[key] = Get(files[key]);
     });
     returnObj.all = Promise.all(Object.keys(returnObj).map(key => returnObj[key]));
     return returnObj;
 };
+exports.Asset = {
+    get: Get,
+    gets: Gets,
+    on: On,
+    watch: Watch,
+    off: Off
+};
 
+
+/***/ }),
+/* 1 */
+/***/ (function(module, exports) {
+
+module.exports = THREE;
 
 /***/ }),
 /* 2 */
@@ -198,7 +204,1368 @@ exports.Gets = (files) => {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const THREE = __webpack_require__(0);
+class System {
+    constructor() {
+        this.components = {};
+        this.entities = [];
+    }
+    created() { }
+    destroyed() { }
+    start(state) {
+        this.state = state;
+        this.created();
+    }
+    stop() {
+        // no-op
+    }
+    update(entity) {
+        // no-op
+    }
+    add(entity) {
+        this.entities.push(entity.id);
+    }
+    remove(entity) {
+        this.entities.splice(this.entities.indexOf(entity.id), 1);
+    }
+    has(entity) {
+        return this.entities.indexOf(entity.id) !== -1;
+    }
+    tick(delta) {
+        // no-op
+    }
+}
+exports.System = System;
+
+
+/***/ }),
+/* 3 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const system_1 = __webpack_require__(2);
+const input_1 = __webpack_require__(11);
+const THREE = __webpack_require__(1);
+const defaults = {
+    turnSpeed: 1,
+    forwardSpeed: 1,
+    cameraLerp: 1,
+    cameraOffset: [0, 5, 5],
+    cameraLookAt: [0, 0, 0]
+};
+const defaultTransform = {
+    position: [0, 0, 0],
+    rotation: [0, 0, 0]
+};
+class Controller extends system_1.System {
+    constructor() {
+        super(...arguments);
+        this.components = {
+            controller: 'IControllerComponent',
+            camera: 'ICameraComponent'
+        };
+        this.controllers = {};
+    }
+    // we actually care about the component data
+    add(entity) {
+        super.add(entity);
+        if (entity.controller)
+            this.controllers[entity.id] = entity;
+        if (entity.camera)
+            this.camera = entity;
+        // TODO: Use our redux patternz
+        // TODO: Oh god please schema come soon
+        if (!entity.position || !entity.rotation) {
+            entity.position = entity.position || [0, 0, 0];
+            entity.rotation = entity.rotation || [0, 0, 0];
+            this.state.set(entity.id, entity);
+        }
+    }
+    remove(entity) {
+        super.remove(entity);
+        if (entity.controller)
+            delete this.controllers[entity.id];
+        if (entity.camera)
+            delete this.camera;
+    }
+    update(entity) {
+        if (entity.controller)
+            this.controllers[entity.id] = entity;
+        if (entity.camera)
+            this.camera = entity;
+    }
+    tick(delta) {
+        Object.keys(this.controllers).forEach(key => {
+            const entity = this.controllers[key];
+            const controls = Object.assign({}, defaults, entity.controller);
+            const t3d = Controller.t3d;
+            const keys = input_1.Input.keyboard.rawKeys;
+            const forward = (keys.w && 1) || (keys.s && -1) || 0;
+            const turn = (keys.a && -1) || (keys.d && 1) || 0;
+            const up = (keys.x && -1) || (keys.c && 1) || 0;
+            t3d.position.fromArray(entity.position);
+            t3d.rotation.fromArray(entity.rotation);
+            t3d.rotateY(turn * delta * controls.turnSpeed);
+            t3d.translateZ(forward * delta * controls.forwardSpeed);
+            t3d.translateY(up * delta * controls.forwardSpeed);
+            entity.position = t3d.position.toArray();
+            entity.rotation = t3d.rotation.toArray();
+            this.state.set(entity.id, entity);
+            if (this.camera) {
+                const axis = new THREE.Vector3().fromArray(controls.cameraLookAt);
+                const dstPosition = t3d.position.clone().add(axis);
+                const camPosition = t3d.position.clone().add(new THREE.Vector3().fromArray(controls.cameraOffset));
+                t3d.position.fromArray(this.camera.position);
+                t3d.rotation.fromArray(this.camera.rotation);
+                t3d.position.lerp(camPosition, controls.cameraLerp);
+                t3d.lookAt(dstPosition);
+                this.camera.position = t3d.position.toArray();
+                this.camera.rotation = t3d.rotation.toArray();
+                this.state.set(this.camera.id, this.camera);
+            }
+        });
+    }
+}
+// used for three math operations
+Controller.t3d = new THREE.Object3D();
+exports.Controller = Controller;
+
+
+/***/ }),
+/* 4 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const system_1 = __webpack_require__(2);
+const THREE = __webpack_require__(1);
+const vox_mesh_1 = __webpack_require__(14);
+const throttle = (type, name, obj) => {
+    obj = obj || window;
+    let running = false;
+    const func = () => {
+        if (running) {
+            return;
+        }
+        running = true;
+        requestAnimationFrame(() => {
+            obj.dispatchEvent(new CustomEvent(name));
+            running = false;
+        });
+    };
+    obj.addEventListener(type, func);
+};
+const LightUpdate = (light, data) => {
+    if (data.color !== undefined)
+        light.color.setHex(data.color);
+    if (data.intensity !== undefined)
+        light.intensity = data.intensity;
+};
+const TransformUpdate = (o3d, data) => {
+    if (data.position)
+        o3d.position.fromArray(data.position);
+    if (data.rotation)
+        o3d.rotation.fromArray(data.rotation);
+};
+const TargetUpdate = (o3d, data) => {
+    TransformUpdate(o3d, data);
+    if (data.target)
+        o3d.target.fromArray(data.target);
+};
+class WebGL extends system_1.System {
+    constructor() {
+        super(...arguments);
+        // Use me if.. you have
+        this.components = {
+            directional: 'IDirectionalLightComponent',
+            ambient: 'ILightComponent',
+            vox: 'IVoxComponent',
+            camera: 'ICameraComponent'
+        };
+        // Entire Scene
+        this.scene = new THREE.Scene();
+        this.entityMap = {};
+        this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        this.renderer = new THREE.WebGLRenderer({ antialias: true });
+    }
+    start() {
+        window.scene = this.scene;
+        throttle('resize', 'optimizedResize');
+        window.addEventListener('optimizedResize', this.handleResize.bind(this));
+        this.handleResize();
+        document.body.appendChild(this.renderer.domElement);
+    }
+    update(entity) {
+        this.updateO3D(entity);
+    }
+    add(entity) {
+        super.add(entity);
+        this.updateO3D(entity);
+    }
+    remove(entity) {
+        super.remove(entity);
+        const obj = this.entityMap[entity.id];
+        obj.parent.remove(obj);
+        delete this.entityMap[entity.id];
+    }
+    tick(delta) {
+        this.renderer.render(this.scene, this.camera);
+    }
+    handleResize() {
+        this.renderer.setSize(window.innerWidth, window.innerHeight);
+        this.camera.aspect = window.innerWidth / window.innerHeight;
+    }
+    // Delta updates sure would be nice
+    updateO3D(entity) {
+        const o3d = this.get(entity.id);
+        const t = entity;
+        if (t.position || t.rotation) {
+            TransformUpdate(o3d, t);
+        }
+        const v = entity.vox;
+        if (v) {
+            if (!o3d.userData.vox) {
+                o3d.userData.vox = new vox_mesh_1.VoxMesh(v);
+                o3d.add(o3d.userData.vox);
+            }
+            else {
+                o3d.userData.vox.update(v);
+            }
+        }
+        else if (o3d.userData.vox) {
+            // Check to see if we have a vox and remove it
+            o3d.remove(o3d.userData.vox);
+            o3d.userData.vox.stop();
+        }
+        const ambient = entity.ambient;
+        if (ambient) {
+            let light = o3d.userData.ambient;
+            if (!light) {
+                light = o3d.userData.ambient = new THREE.AmbientLight();
+                o3d.add(light);
+            }
+            LightUpdate(light, ambient);
+        }
+        else if (o3d.userData.ambient) {
+            o3d.remove(o3d.userData.ambient);
+        }
+        const directional = entity.directional;
+        if (directional) {
+            let light = o3d.userData.directional;
+            if (!light) {
+                light = o3d.userData.directional = new THREE.DirectionalLight();
+                o3d.add(light);
+            }
+            LightUpdate(light, directional);
+            TargetUpdate(light, directional);
+        }
+        const camera = entity.camera;
+        if (camera) {
+            let camObj = o3d.userData.camera;
+            if (!camObj) {
+                camObj = o3d.userData.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+                this.camera = camObj;
+            }
+            TargetUpdate(camObj, camera);
+        }
+    }
+    get(entityId) {
+        if (this.entityMap[entityId] !== undefined) {
+            return this.entityMap[entityId];
+        }
+        const o3d = new THREE.Object3D();
+        o3d.name = entityId;
+        this.entityMap[entityId] = o3d;
+        const list = entityId.split('.');
+        const parent = list.length > 1
+            ? this.get(list.slice(0, -1).join('.'))
+            : this.scene;
+        parent.add(o3d);
+        return o3d;
+    }
+}
+exports.WebGL = WebGL;
+
+
+/***/ }),
+/* 5 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const asset_1 = __webpack_require__(0);
+// should be smart enough to do on('key.whatever')
+// and wildcards
+// should autohandle is updates
+// should not handle has updates
+// should handle reducers/have a set of reducers
+class State {
+    constructor(systems) {
+        this.handlers = {};
+        this.map = new Map();
+        this.components = {};
+        this.clock = Date.now();
+        this.systems = systems;
+        Object.keys(this.systems).forEach(sysKey => {
+            const system = systems[sysKey];
+            Object.keys(system.components).forEach(component => {
+                this.components[component] = this.components[component] || [];
+                this.components[component].push(system);
+            });
+            system.start(this);
+        });
+        this.tick = this.tick.bind(this);
+        this.tick();
+    }
+    off(key, fn) {
+        const handlers = this.handlers[key] = this.handlers[key] || [];
+        const idx = handlers.indexOf(fn);
+        if (idx === -1)
+            return false;
+        handlers.splice(idx, 1);
+        return true;
+    }
+    // needs to handle the IS chain
+    on(key, fn) {
+        const handlers = this.handlers[key] = this.handlers[key] || [];
+        handlers.push(fn);
+    }
+    async watch(key, fn) {
+        this.on(key, fn);
+        fn(await this.get(key));
+    }
+    get(key) {
+        return this.expandEntity(this.map.get(key));
+    }
+    // Make an entity including its templates
+    raw(key) {
+        return this.map.get(key);
+    }
+    async set(key, entity) {
+        // ensure
+        entity.id = key;
+        this.map.set(entity.id, entity);
+        const exEntity = await this.get(entity.id);
+        if (exEntity.has && Object.keys(exEntity.has).length > 0) {
+            Object.keys(exEntity.has).forEach(hasKey => {
+                // ensure key set
+                this.set(`${key}.${hasKey}`, exEntity.has[hasKey]);
+            });
+        }
+        if (entity.is) {
+            asset_1.Asset.on(entity.is, async () => {
+                this.fire(key);
+            });
+        }
+        this.fire(key);
+        return exEntity;
+    }
+    delete(key) {
+        if (typeof key === 'object') {
+            key = key.id;
+        }
+        const data = this.raw(key);
+        if (data && data.has && Object.keys(data.has).length > 0) {
+            Object.keys(data.has).forEach(hasKey => this.delete(`${key}.${hasKey}`));
+        }
+        const ret = this.map.delete(key);
+        this.fire(key, true);
+        delete this.handlers[key];
+        return ret;
+    }
+    toJSON() {
+        const result = [];
+        this.map.forEach((e, k) => {
+            result.push([k, e]);
+        });
+        return result;
+    }
+    tick() {
+        requestAnimationFrame(this.tick);
+        const now = Date.now();
+        const delta = now - this.clock;
+        this.clock = now;
+        Object.keys(this.systems).forEach(sysKey => {
+            const system = this.systems[sysKey];
+            system.tick(delta);
+        });
+    }
+    async fire(key, deleted = false) {
+        const handlers = this.handlers[key] || [];
+        const val = deleted ? undefined : await this.get(key);
+        handlers.forEach(fn => fn(val));
+        // we fire whenever shit changes...
+        // good time to check to see if systems need updated
+        // man do we need deltas
+        Object.keys(this.systems).forEach(sysKey => {
+            const system = this.systems[sysKey];
+            const hasEntity = system.has(val);
+            if (hasEntity && deleted) {
+                return system.remove(val);
+            }
+            // delta changes would help this
+            const hasComponent = Object.keys(system.components).some(component => {
+                return val[component] !== undefined;
+            });
+            if (hasComponent && !hasEntity) {
+                return system.add(val);
+            }
+            if (hasComponent && hasEntity) {
+                return system.update(val);
+            }
+            if (!hasComponent && hasEntity) {
+                return system.remove(val);
+            }
+        });
+    }
+    // Probably needs to be cached so we don't do this all the time
+    expandEntity(e, expand = false) {
+        return new Promise(async (resolve, reject) => {
+            if (!e)
+                reject(e);
+            const data = { has: {} };
+            if (e.is) {
+                // Get handles resolving is's
+                Object.assign(data, await asset_1.Asset.get(e.is), { is: undefined });
+            }
+            Object.assign(data, e, {
+                has: Object.assign(data.has, e.has)
+            });
+            resolve(data);
+        });
+    }
+}
+exports.State = State;
+
+
+/***/ }),
+/* 6 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const system_1 = __webpack_require__(2);
+class Physics extends system_1.System {
+}
+exports.Physics = Physics;
+
+
+/***/ }),
+/* 7 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+/**
+ * Handles input events from the gamepad,
+ *  and sending the connected/disconnected events.
+ */
+Object.defineProperty(exports, "__esModule", { value: true });
+const GamepadButtonLookup = {
+    0: 'a',
+    1: 'b',
+    2: 'x',
+    3: 'y',
+    4: 'l1',
+    5: 'r1',
+    6: 'l2',
+    7: 'r2',
+    8: 'select',
+    9: 'start',
+    10: 'l3',
+    11: 'r3',
+    12: 'dup',
+    13: 'ddown',
+    14: 'dleft',
+    15: 'dright',
+};
+const rawGamepads = [];
+const rawGamepadEventers = [];
+window.addEventListener('gamepadconnected', e => {
+    const index = e.gamepad.index;
+    const gamepad = navigator.getGamepads()[index];
+    rawGamepads[index] = gamepad;
+    rawGamepadEventers[index] = new GamepadEventer(gamepad);
+});
+window.addEventListener('gamepaddisconnected', e => {
+    const index = e.gamepad.index;
+    delete rawGamepads[index];
+    delete rawGamepadEventers[index];
+});
+class GamepadEventSets {
+    constructor() {
+        this.onPressed = [];
+    }
+    copy(source) {
+        this.onPressed = [];
+        for (const event of source.onPressed)
+            this.onPressed.push(event);
+        return this;
+    }
+}
+exports.GamepadEventSets = GamepadEventSets;
+class GamepadEventMap {
+}
+exports.GamepadEventMap = GamepadEventMap;
+const gamepadSettings = {
+    deadZone: 0,
+};
+const gamepadConnectedEvents = [];
+const gamepadDisonnectedEvents = [];
+const gamepadEventerTemplate = {};
+class GamepadEventer {
+    constructor(gamepad) {
+        this.gamepad = gamepad;
+        this.gamepadEvents = new GamepadEventMap();
+        for (const event in gamepadEventerTemplate) {
+            if (gamepadEventerTemplate[event]) {
+                this.gamepadEvents[event] = new GamepadEventSets().copy(gamepadEventerTemplate[event]);
+            }
+        }
+    }
+    // Handle buttons, axes, analog triggers, etc
+    // maybe can take which gamepadId to listen to, and generate a closure to filter by that id?
+    // is there a more efficient way to do that than filtering every event? Like storing in a sparse array?
+    on(eventType, handler) {
+        const lookUp = GamepadButtonLookup[eventType] || eventType.toLowerCase();
+        this.gamepadEvents[lookUp].onPressed.push(handler);
+    }
+}
+exports.GamepadEventer = GamepadEventer;
+function FireGamepadEvents(gamepad, button, value) {
+    const eventMap = gamepad.gamepadEvents;
+    if (eventMap[button]) {
+        let eventSet;
+        eventSet = eventMap[button].onPressed;
+        eventSet.forEach(func => func(value));
+    }
+}
+function tick() {
+    requestAnimationFrame(tick);
+    // Handle gamepads
+    const gpds = navigator.getGamepads();
+    for (let i = 0; i < gpds.length; ++i) {
+        const gamepadEventer = rawGamepadEventers[i];
+        if (gamepadEventer) {
+            const gp = gamepadEventer.gamepad;
+            for (let a = 0; a < gp.axes.length; ++a) {
+                if (Math.abs(gp.axes[a]) > gamepadSettings.deadZone) {
+                    FireGamepadEvents(gamepadEventer, 'axis' + a, gp.axes[a]);
+                }
+            }
+            for (let b = 0; b < gp.buttons.length; ++b) {
+                const button = gp.buttons[b];
+                FireGamepadEvents(gamepadEventer, b, button.value !== undefined ? button.value : (button.pressed ? 1 : 0));
+            }
+        }
+    }
+}
+tick();
+function onGamepadConnected(handler) {
+    return gamepadConnectedEvents.push(handler);
+}
+exports.onGamepadConnected = onGamepadConnected;
+function offGamepadConnected(handlerId) {
+    delete gamepadConnectedEvents[handlerId];
+}
+exports.offGamepadConnected = offGamepadConnected;
+function onGamepadDisconnected(handler) {
+    return gamepadDisonnectedEvents.push(handler);
+}
+exports.onGamepadDisconnected = onGamepadDisconnected;
+function offGamepadDisconnected(handlerId) {
+    delete gamepadDisonnectedEvents[handlerId];
+}
+exports.offGamepadDisconnected = offGamepadDisconnected;
+function addTemplateHandler(event, handler) {
+    if (gamepadEventerTemplate[event] === undefined)
+        gamepadEventerTemplate[event] = new GamepadEventSets();
+    gamepadEventerTemplate[event].onPressed.push(handler);
+}
+exports.addTemplateHandler = addTemplateHandler;
+function setGamepadSettings(settings) {
+    for (const prop in settings)
+        if (settings[prop])
+            gamepadSettings[prop] = settings[prop];
+}
+exports.setGamepadSettings = setGamepadSettings;
+
+
+/***/ }),
+/* 8 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const keyboard = __webpack_require__(9);
+exports.keyboard = keyboard;
+const mouse = __webpack_require__(10);
+exports.mouse = mouse;
+const gamepad = __webpack_require__(7);
+exports.gamepad = gamepad;
+
+
+/***/ }),
+/* 9 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+/**
+ * Handle input events from the keyboard,
+ *  specifically key trigger/press/release events.
+ *  Also expose raw input array for convenience.
+ */
+Object.defineProperty(exports, "__esModule", { value: true });
+// Key state enum
+exports.KS_TRIGGERED = 0;
+exports.KS_PRESSED = 1;
+exports.KS_RELEASED = 2;
+const KeyLookUp = {
+    13: 'enter',
+    8: 'backspace',
+    9: 'tab',
+    17: 'ctrl',
+    18: 'alt',
+    37: 'left',
+    38: 'up',
+    39: 'right',
+    40: 'down',
+    32: 'space'
+};
+exports.rawKeys = {};
+class EventSets {
+    constructor() {
+        this.onTriggered = [];
+        this.onPressed = [];
+        this.onReleased = [];
+        this.allSets = [this.onTriggered, this.onPressed, this.onReleased];
+    }
+}
+const keyEvents = {};
+function fireKeyEvents(key, keyState) {
+    if (keyEvents[key]) {
+        keyEvents[key].allSets[keyState].forEach(func => func());
+    }
+}
+function onKeyEvent(key, keyState, fn) {
+    // [TODO] figure out how to assert that keyState is valid KS_ enum
+    if (keyEvents[key] === undefined)
+        keyEvents[key] = new EventSets();
+    return keyEvents[key].allSets[keyState].push(fn);
+}
+exports.onKeyEvent = onKeyEvent;
+function offKeyEvent(key, keyState, handlerId) {
+    delete keyEvents[key].allSets[keyState][handlerId];
+}
+exports.offKeyEvent = offKeyEvent;
+function tick() {
+    requestAnimationFrame(tick);
+    // Handle continuous key firing
+    for (const key in exports.rawKeys) {
+        if (exports.rawKeys[key]) {
+            fireKeyEvents(key, exports.KS_PRESSED);
+        }
+    }
+}
+tick();
+window.addEventListener('blur', (e) => {
+    Object.keys(exports.rawKeys).forEach((k) => {
+        exports.rawKeys[k] = false;
+    });
+});
+document.addEventListener('keyup', (e) => {
+    const lookUp = KeyLookUp[e.keyCode] || e.key.toLowerCase();
+    exports.rawKeys[e.keyCode] = false;
+    exports.rawKeys[lookUp] = false;
+    fireKeyEvents(e.keyCode, exports.KS_RELEASED);
+    fireKeyEvents(lookUp, exports.KS_RELEASED);
+});
+document.addEventListener('keydown', (e) => {
+    const lookUp = KeyLookUp[e.keyCode] || e.key.toLowerCase();
+    // only fire trigger events once
+    if (!exports.rawKeys[e.keyCode]) {
+        exports.rawKeys[e.keyCode] = true;
+        exports.rawKeys[lookUp] = true;
+        fireKeyEvents(e.keyCode, exports.KS_TRIGGERED);
+        fireKeyEvents(lookUp, exports.KS_TRIGGERED);
+    }
+});
+
+
+/***/ }),
+/* 10 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+/**
+ * Handle input events from the mouse,
+ * such as mouse button trigger/press/release
+ * and mouse coordinates.
+ */
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.mouse = {
+    x: 0,
+    y: 0,
+    xp: 0,
+    yp: 0,
+    left: false,
+    right: false,
+};
+document.addEventListener('mousemove', e => {
+    exports.mouse.x = e.clientX;
+    exports.mouse.y = e.clientY;
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    exports.mouse.xp = exports.mouse.x / w - .5;
+    exports.mouse.yp = exports.mouse.y / h - .5;
+});
+document.addEventListener('mousedown', e => {
+    exports.mouse.left = true;
+});
+document.addEventListener('mouseup', e => {
+    exports.mouse.left = false;
+});
+
+
+/***/ }),
+/* 11 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const devices_1 = __webpack_require__(8);
+const asset_1 = __webpack_require__(0);
+const inputActions = {};
+const fireActions = (action, value) => {
+    if (inputActions[action] === undefined)
+        return;
+    inputActions[action].forEach(fn => fn(value));
+};
+function setupInputMappings(inputActionMap) {
+    devices_1.gamepad.setGamepadSettings(inputActionMap.gamepadSettings);
+    for (const action in inputActionMap.actions) {
+        if (inputActionMap.actions[action]) {
+            for (const mapping of inputActionMap.actions[action]) {
+                if (mapping.gamepad) {
+                    const gp = devices_1.gamepad;
+                    gp.addTemplateHandler(mapping.gamepad, value => { fireActions(action, mapping.amount * value); });
+                }
+                else if (mapping.key) {
+                    devices_1.keyboard.onKeyEvent(mapping.key, devices_1.keyboard.KS_PRESSED, () => {
+                        fireActions(action, mapping.amount);
+                    });
+                }
+            }
+        }
+    }
+}
+asset_1.Asset.get('../content/systems/input.toml').then(setupInputMappings);
+// Probably dont' want on/off
+exports.Input = {
+    on(actionName, handler) {
+        if (inputActions[actionName] === undefined)
+            inputActions[actionName] = [];
+        return inputActions[actionName].push(handler);
+    },
+    off(actionName, handlerId) {
+        delete inputActions[actionName][handlerId];
+    },
+    gamepad: devices_1.gamepad,
+    keyboard: devices_1.keyboard,
+    mouse: devices_1.mouse
+};
+
+
+/***/ }),
+/* 12 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const state_1 = __webpack_require__(5);
+const physics_1 = __webpack_require__(6);
+const webgl_1 = __webpack_require__(4);
+const controller_1 = __webpack_require__(3);
+const asset_1 = __webpack_require__(0);
+// State starts ticking ASAP
+const state = new state_1.State({
+    controller: new controller_1.Controller(),
+    physics: new physics_1.Physics(),
+    webgl: new webgl_1.WebGL()
+});
+// Inform state about it
+asset_1.Asset.watch('content/scene/default.toml', (sceneData) => {
+    // ignore top level components for now
+    if (sceneData.has) {
+        Object.keys(sceneData.has).forEach(key => {
+            state.set(key, sceneData.has[key]);
+        });
+    }
+});
+
+
+/***/ }),
+/* 13 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const THREE = __webpack_require__(1);
+class MeshBuilder {
+    constructor(voxelData, param) {
+        if (MeshBuilder.textureFactory === null)
+            MeshBuilder.textureFactory = new TextureFactory();
+        param = param || {};
+        this.voxelData = voxelData;
+        this.voxelSize = param.voxelSize || MeshBuilder.DEFAULT_PARAM.voxelSize;
+        this.vertexColor = (param.vertexColor === undefined)
+            ? MeshBuilder.DEFAULT_PARAM.vertexColor
+            : param.vertexColor;
+        this.optimizeFaces = (param.optimizeFaces === undefined)
+            ? MeshBuilder.DEFAULT_PARAM.optimizeFaces
+            : param.optimizeFaces;
+        this.originToBottom = (param.originToBottom === undefined)
+            ? MeshBuilder.DEFAULT_PARAM.originToBottom
+            : param.originToBottom;
+        this.jitter = param.jitter === undefined ? MeshBuilder.DEFAULT_PARAM.jitter : param.jitter;
+        this.geometry = null;
+        this.material = null;
+        this.build();
+    }
+    build() {
+        this.geometry = new THREE.Geometry();
+        this.material = new THREE.MeshPhongMaterial();
+        // 隣接ボクセル検索用ハッシュテーブル
+        this.hashTable = createHashTable(this.voxelData.voxels);
+        const offsetX = (this.voxelData.size.x - 1) * -0.5;
+        const offsetY = (this.voxelData.size.y - 1) * -0.5;
+        const offsetZ = (this.originToBottom) ? 0 : (this.voxelData.size.z - 1) * -0.5;
+        const matrix = new THREE.Matrix4();
+        const jitter = this.jitter;
+        this.voxelData.voxels.forEach((voxel) => {
+            const voxGeometry = this._createVoxGeometry(voxel);
+            if (voxGeometry) {
+                voxel.x += Math.random() * jitter;
+                voxel.y += Math.random() * jitter;
+                voxel.z += Math.random() * jitter;
+                matrix.makeTranslation((voxel.x + offsetX) * this.voxelSize, (voxel.z + offsetZ) * this.voxelSize, -(voxel.y + offsetY) * this.voxelSize);
+                this.geometry.merge(voxGeometry, matrix);
+            }
+        });
+        if (this.optimizeFaces) {
+            this.geometry.mergeVertices();
+        }
+        this.geometry.computeFaceNormals();
+        if (this.vertexColor) {
+            this.material.vertexColors = THREE.FaceColors;
+        }
+        else {
+            this.material.map = MeshBuilder.textureFactory.getTexture(this.voxelData);
+        }
+    }
+    getTexture() {
+        return MeshBuilder.textureFactory.getTexture(this.voxelData);
+    }
+    _createVoxGeometry(voxel) {
+        // 隣接するボクセルを検索し、存在する場合は面を無視する
+        const ignoreFaces = [];
+        if (this.optimizeFaces) {
+            six.forEach(s => {
+                if (this.hashTable.has(voxel.x + s.x, voxel.y + s.y, voxel.z + s.z)) {
+                    ignoreFaces.push(s.ignoreFace);
+                }
+            });
+        }
+        // 6方向すべて隣接されていたらnullを返す
+        if (ignoreFaces.length === 6)
+            return null;
+        // 頂点データ
+        const voxVertices = voxVerticesSource.map((voxelInfo) => {
+            return new THREE.Vector3(voxelInfo.x * this.voxelSize * 0.5, voxelInfo.y * this.voxelSize * 0.5, voxelInfo.z * this.voxelSize * 0.5);
+        });
+        // 面データ
+        const voxFaces = voxFacesSource.map(f => {
+            return {
+                faceA: new THREE.Face3(f.faceA.a, f.faceA.b, f.faceA.c),
+                faceB: new THREE.Face3(f.faceB.a, f.faceB.b, f.faceB.c),
+            };
+        });
+        // 頂点色
+        let color;
+        if (this.vertexColor) {
+            const c = this.voxelData.palette[voxel.colorIndex];
+            color = new THREE.Color(c.r / 255, c.g / 255, c.b / 255);
+        }
+        const geometry = new THREE.Geometry();
+        geometry.faceVertexUvs[0] = [];
+        // 面を作る
+        voxFaces.forEach((faces, i) => {
+            if (ignoreFaces.indexOf(i) >= 0)
+                return;
+            if (this.vertexColor) {
+                faces.faceA.color = color;
+                faces.faceB.color = color;
+            }
+            else {
+                const uv = new THREE.Vector2((voxel.colorIndex + 0.5) / 256, 0.5);
+                geometry.faceVertexUvs[0].push([uv, uv, uv], [uv, uv, uv]);
+            }
+            geometry.faces.push(faces.faceA, faces.faceB);
+        });
+        // 使っている頂点を抽出
+        const usingVertices = {};
+        geometry.faces.forEach((face) => {
+            usingVertices[face.a] = true;
+            usingVertices[face.b] = true;
+            usingVertices[face.c] = true;
+        });
+        // 面の頂点インデックスを詰める処理
+        const splice = (index) => {
+            geometry.faces.forEach((face) => {
+                if (face.a > index)
+                    face.a -= 1;
+                if (face.b > index)
+                    face.b -= 1;
+                if (face.c > index)
+                    face.c -= 1;
+            });
+        };
+        // 使っている頂点のみ追加する
+        let j = 0;
+        voxVertices.forEach((vertex, i) => {
+            if (usingVertices[i]) {
+                geometry.vertices.push(vertex);
+            }
+            else {
+                splice(i - j);
+                j += 1;
+            }
+        });
+        return geometry;
+    }
+    createMesh() {
+        return new THREE.Mesh(this.geometry, this.material);
+    }
+    isOuterVoxel(voxel) {
+        return six.filter(s => {
+            return this.hashTable.has(voxel.x + s.x, voxel.y + s.y, voxel.z + s.z);
+        }).length < 6;
+    }
+}
+MeshBuilder.DEFAULT_PARAM = {
+    voxelSize: 1.0,
+    vertexColor: false,
+    optimizeFaces: true,
+    originToBottom: true,
+    jitter: 0
+};
+exports.MeshBuilder = MeshBuilder;
+// 隣接方向と無視する面の対応表
+const six = [
+    { x: -1, y: 0, z: 0, ignoreFace: 0 },
+    { x: 1, y: 0, z: 0, ignoreFace: 1 },
+    { x: 0, y: -1, z: 0, ignoreFace: 5 },
+    { x: 0, y: 1, z: 0, ignoreFace: 4 },
+    { x: 0, y: 0, z: -1, ignoreFace: 2 },
+    { x: 0, y: 0, z: 1, ignoreFace: 3 },
+];
+// 頂点データソース
+const voxVerticesSource = [
+    { x: -1, y: 1, z: -1 },
+    { x: 1, y: 1, z: -1 },
+    { x: -1, y: 1, z: 1 },
+    { x: 1, y: 1, z: 1 },
+    { x: -1, y: -1, z: -1 },
+    { x: 1, y: -1, z: -1 },
+    { x: -1, y: -1, z: 1 },
+    { x: 1, y: -1, z: 1 },
+];
+// 面データソース
+const voxFacesSource = [
+    { faceA: { a: 6, b: 2, c: 0 }, faceB: { a: 6, b: 0, c: 4 } },
+    { faceA: { a: 5, b: 1, c: 3 }, faceB: { a: 5, b: 3, c: 7 } },
+    { faceA: { a: 5, b: 7, c: 6 }, faceB: { a: 5, b: 6, c: 4 } },
+    { faceA: { a: 2, b: 3, c: 1 }, faceB: { a: 2, b: 1, c: 0 } },
+    { faceA: { a: 4, b: 0, c: 1 }, faceB: { a: 4, b: 1, c: 5 } },
+    { faceA: { a: 7, b: 3, c: 2 }, faceB: { a: 7, b: 2, c: 6 } },
+];
+const hash = (x, y, z) => {
+    return "x" + x + "y" + y + "z" + z;
+};
+const createHashTable = (voxels) => {
+    const hashTable = {};
+    voxels.forEach((v) => {
+        hashTable[hash(v.x, v.y, v.z)] = true;
+    });
+    hashTable.has = (x, y, z) => {
+        return hash(x, y, z) in this;
+    };
+    return hashTable;
+};
+class TextureFactory {
+    createCanvas(voxelData) {
+        const canvas = document.createElement("canvas");
+        canvas.width = 256;
+        canvas.height = 1;
+        const context = canvas.getContext("2d");
+        for (let i = 0, len = voxelData.palette.length; i < len; i++) {
+            const p = voxelData.palette[i];
+            context.fillStyle = "rgb(" + p.r + "," + p.g + "," + p.b + ")";
+            context.fillRect(i * 1, 0, 1, 1);
+        }
+        return canvas;
+    }
+    getTexture(voxelData) {
+        const palette = voxelData.palette;
+        const hashCode = getHashCode(palette);
+        if (hashCode in cache) {
+            // console.log("cache hit");
+            return cache[hashCode];
+        }
+        const canvas = this.createCanvas(voxelData);
+        const texture = new THREE.Texture(canvas);
+        texture.needsUpdate = true;
+        cache[hashCode] = texture;
+        return texture;
+    }
+}
+const cache = {};
+const getHashCode = (palette) => {
+    let str = "";
+    for (let i = 0; i < 256; i++) {
+        const p = palette[i];
+        str += hex(p.r);
+        str += hex(p.g);
+        str += hex(p.b);
+        str += hex(p.a);
+    }
+    return md5(str);
+};
+const hex = (num) => {
+    const r = num.toString(16);
+    return (r.length === 1) ? "0" + r : r;
+};
+/* md5.js - MD5 Message-Digest
+    * Copyright (C) 1999,2002 Masanao Izumo <iz@onicos.co.jp>
+    * Version: 2.0.0
+    * LastModified: May 13 2002
+    *
+    * This program is free software.  You can redistribute it and/or modify
+    * it without any warranty.  This library calculates the MD5 based on RFC1321.
+    * See RFC1321 for more information and algorism.
+    */
+/* Interface:
+    * md5_128bits = MD5_hash(data);
+    * md5_hexstr = MD5_hexhash(data);
+    */
+/* ChangeLog
+    * 2002/05/13: Version 2.0.0 released
+    * NOTICE: API is changed.
+    * 2002/04/15: Bug fix about MD5 length.
+    */
+//    md5_T[i] = parseInt(Math.abs(Math.sin(i)) * 4294967296.0);
+const MD5_T = new Array(0x00000000, 0xd76aa478, 0xe8c7b756, 0x242070db, 0xc1bdceee, 0xf57c0faf, 0x4787c62a, 0xa8304613, 0xfd469501, 0x698098d8, 0x8b44f7af, 0xffff5bb1, 0x895cd7be, 0x6b901122, 0xfd987193, 0xa679438e, 0x49b40821, 0xf61e2562, 0xc040b340, 0x265e5a51, 0xe9b6c7aa, 0xd62f105d, 0x02441453, 0xd8a1e681, 0xe7d3fbc8, 0x21e1cde6, 0xc33707d6, 0xf4d50d87, 0x455a14ed, 0xa9e3e905, 0xfcefa3f8, 0x676f02d9, 0x8d2a4c8a, 0xfffa3942, 0x8771f681, 0x6d9d6122, 0xfde5380c, 0xa4beea44, 0x4bdecfa9, 0xf6bb4b60, 0xbebfbc70, 0x289b7ec6, 0xeaa127fa, 0xd4ef3085, 0x04881d05, 0xd9d4d039, 0xe6db99e5, 0x1fa27cf8, 0xc4ac5665, 0xf4292244, 0x432aff97, 0xab9423a7, 0xfc93a039, 0x655b59c3, 0x8f0ccc92, 0xffeff47d, 0x85845dd1, 0x6fa87e4f, 0xfe2ce6e0, 0xa3014314, 0x4e0811a1, 0xf7537e82, 0xbd3af235, 0x2ad7d2bb, 0xeb86d391);
+const MD5_round1 = new Array(new Array(0, 7, 1), new Array(1, 12, 2), new Array(2, 17, 3), new Array(3, 22, 4), new Array(4, 7, 5), new Array(5, 12, 6), new Array(6, 17, 7), new Array(7, 22, 8), new Array(8, 7, 9), new Array(9, 12, 10), new Array(10, 17, 11), new Array(11, 22, 12), new Array(12, 7, 13), new Array(13, 12, 14), new Array(14, 17, 15), new Array(15, 22, 16));
+const MD5_round2 = new Array(new Array(1, 5, 17), new Array(6, 9, 18), new Array(11, 14, 19), new Array(0, 20, 20), new Array(5, 5, 21), new Array(10, 9, 22), new Array(15, 14, 23), new Array(4, 20, 24), new Array(9, 5, 25), new Array(14, 9, 26), new Array(3, 14, 27), new Array(8, 20, 28), new Array(13, 5, 29), new Array(2, 9, 30), new Array(7, 14, 31), new Array(12, 20, 32));
+const MD5_round3 = new Array(new Array(5, 4, 33), new Array(8, 11, 34), new Array(11, 16, 35), new Array(14, 23, 36), new Array(1, 4, 37), new Array(4, 11, 38), new Array(7, 16, 39), new Array(10, 23, 40), new Array(13, 4, 41), new Array(0, 11, 42), new Array(3, 16, 43), new Array(6, 23, 44), new Array(9, 4, 45), new Array(12, 11, 46), new Array(15, 16, 47), new Array(2, 23, 48));
+const MD5_round4 = new Array(new Array(0, 6, 49), new Array(7, 10, 50), new Array(14, 15, 51), new Array(5, 21, 52), new Array(12, 6, 53), new Array(3, 10, 54), new Array(10, 15, 55), new Array(1, 21, 56), new Array(8, 6, 57), new Array(15, 10, 58), new Array(6, 15, 59), new Array(13, 21, 60), new Array(4, 6, 61), new Array(11, 10, 62), new Array(2, 15, 63), new Array(9, 21, 64));
+function MD5_F(x, y, z) { return (x & y) | (~x & z); }
+function MD5_G(x, y, z) { return (x & z) | (y & ~z); }
+function MD5_H(x, y, z) { return x ^ y ^ z; }
+function MD5_I(x, y, z) { return y ^ (x | ~z); }
+const MD5_round = new Array(new Array(MD5_F, MD5_round1), new Array(MD5_G, MD5_round2), new Array(MD5_H, MD5_round3), new Array(MD5_I, MD5_round4));
+function MD5_pack(n32) {
+    return String.fromCharCode(n32 & 0xff) +
+        String.fromCharCode((n32 >>> 8) & 0xff) +
+        String.fromCharCode((n32 >>> 16) & 0xff) +
+        String.fromCharCode((n32 >>> 24) & 0xff);
+}
+function MD5_unpack(s4) {
+    return s4.charCodeAt(0) |
+        (s4.charCodeAt(1) << 8) |
+        (s4.charCodeAt(2) << 16) |
+        (s4.charCodeAt(3) << 24);
+}
+function MD5_number(n) {
+    while (n < 0)
+        n += 4294967296;
+    while (n > 4294967295)
+        n -= 4294967296;
+    return n;
+}
+function MD5_apply_round(x, s, f, abcd, r) {
+    let a, b, c, d;
+    let kk, ss, ii;
+    let t, u;
+    a = abcd[0];
+    b = abcd[1];
+    c = abcd[2];
+    d = abcd[3];
+    kk = r[0];
+    ss = r[1];
+    ii = r[2];
+    u = f(s[b], s[c], s[d]);
+    t = s[a] + u + x[kk] + MD5_T[ii];
+    t = MD5_number(t);
+    t = ((t << ss) | (t >>> (32 - ss)));
+    t += s[b];
+    s[a] = MD5_number(t);
+}
+function MD5_hash(data) {
+    let abcd, x, state, s;
+    let len, index, padLen, f, r;
+    let i, j, k;
+    let tmp;
+    state = new Array(0x67452301, 0xefcdab89, 0x98badcfe, 0x10325476);
+    len = data.length;
+    index = len & 0x3f;
+    padLen = (index < 56) ? (56 - index) : (120 - index);
+    if (padLen > 0) {
+        data += "\x80";
+        for (i = 0; i < padLen - 1; i++)
+            data += "\x00";
+    }
+    data += MD5_pack(len * 8);
+    data += MD5_pack(0);
+    len += padLen + 8;
+    abcd = new Array(0, 1, 2, 3);
+    x = new Array(16);
+    s = new Array(4);
+    for (k = 0; k < len; k += 64) {
+        for (i = 0, j = k; i < 16; i++, j += 4) {
+            x[i] = data.charCodeAt(j) |
+                (data.charCodeAt(j + 1) << 8) |
+                (data.charCodeAt(j + 2) << 16) |
+                (data.charCodeAt(j + 3) << 24);
+        }
+        for (i = 0; i < 4; i++)
+            s[i] = state[i];
+        for (i = 0; i < 4; i++) {
+            f = MD5_round[i][0];
+            r = MD5_round[i][1];
+            for (j = 0; j < 16; j++) {
+                MD5_apply_round(x, s, f, abcd, r[j]);
+                tmp = abcd[0];
+                abcd[0] = abcd[3];
+                abcd[3] = abcd[2];
+                abcd[2] = abcd[1];
+                abcd[1] = tmp;
+            }
+        }
+        for (i = 0; i < 4; i++) {
+            state[i] += s[i];
+            state[i] = MD5_number(state[i]);
+        }
+    }
+    return MD5_pack(state[0]) +
+        MD5_pack(state[1]) +
+        MD5_pack(state[2]) +
+        MD5_pack(state[3]);
+}
+function MD5_hexhash(data) {
+    let i, out, c;
+    let bit128;
+    bit128 = MD5_hash(data);
+    out = "";
+    for (i = 0; i < 16; i++) {
+        c = bit128.charCodeAt(i);
+        out += "0123456789abcdef".charAt((c >> 4) & 0xf);
+        out += "0123456789abcdef".charAt(c & 0xf);
+    }
+    return out;
+}
+const md5 = MD5_hexhash;
+
+
+/***/ }),
+/* 14 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const path = __webpack_require__(18);
+const THREE = __webpack_require__(1);
+const vox_mesh_builder_1 = __webpack_require__(13);
+const asset_1 = __webpack_require__(0);
+function scalar(s) {
+    if (typeof (s) === "number")
+        return s;
+    return Math.random() * (s[1] - s[0]) + s[0];
+}
+exports.scalar = scalar;
+function vector(s) {
+    if (typeof (s[0]) === "number")
+        return s;
+    return [
+        Math.random() * (s[1][0] - s[0][0]) + s[0][0],
+        Math.random() * (s[1][1] - s[0][1]) + s[0][1],
+        Math.random() * (s[1][2] - s[0][2]) + s[0][2]
+    ];
+}
+exports.vector = vector;
+const BuildVoxMesh = (voxelBin, data) => {
+    const builder = new vox_mesh_builder_1.MeshBuilder(voxelBin, {
+        voxelSize: scalar(data.size),
+        vertexColor: true,
+        optimizeFaces: false,
+        jitter: scalar(data.jitter)
+    });
+    const mesh = builder.createMesh();
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    return mesh;
+};
+class VoxMesh extends THREE.Object3D {
+    constructor(voxData) {
+        super();
+        this.count = 0;
+        if (typeof voxData === 'string') {
+            asset_1.Asset.on(voxData, this.setVoxData.bind(this));
+            asset_1.Asset.get(voxData);
+        }
+        else {
+            this.setVoxData(voxData);
+        }
+    }
+    update(data) {
+        if (data.position)
+            this.position.fromArray(data.position || [0, 0, 0]);
+        if (data.rotation)
+            this.rotation.fromArray((data.rotation || [0, 0, 0]).map(x => x * Math.PI / 180));
+    }
+    async setVoxData(voxData) {
+        this.stop();
+        this.count++;
+        let data;
+        if (voxData instanceof Promise) {
+            data = await voxData;
+        }
+        else {
+            data = voxData;
+        }
+        this.data = data;
+        const dir = './vox';
+        this.animations = {};
+        data.jitter = data.jitter ? data.jitter : 0;
+        if (this.data.animation) {
+            Object.keys(this.data.animation).forEach(key => {
+                const anim = this.data.animation[key];
+                this.animations[key] = Object.assign({}, anim, { vox: anim.vox.map((file, i) => {
+                        const filePath = path.join(dir, file);
+                        return asset_1.Asset.get(filePath).then(voxelBin => {
+                            return BuildVoxMesh(voxelBin, data);
+                        });
+                    }) });
+                anim.vox.forEach((file, i) => {
+                    const filePath = path.join(dir, file);
+                    asset_1.Asset.on(filePath, (voxelBin) => {
+                        this.animations[key].vox[i] = Promise.resolve(BuildVoxMesh(voxelBin, data));
+                        if (this.current) {
+                            this.play(this.current);
+                        }
+                    });
+                });
+            });
+        }
+        this.update(data);
+        this.voxHolder = new THREE.Object3D();
+        this.add(this.voxHolder);
+        if (this.data.default) {
+            this.play(this.data.default);
+        }
+    }
+    play(animation) {
+        if (this.timeout)
+            clearInterval(this.timeout);
+        this.current = animation;
+        this.frame = 0;
+        const anim = this.animations[this.current];
+        if (anim.vox.length > 0)
+            this.timeout = setInterval(this.step.bind(this), this.animations[animation].speed);
+        this.step();
+    }
+    stop() {
+        if (this.timeout)
+            clearTimeout(this.timeout);
+    }
+    async step() {
+        if (this.voxHolder.children[0])
+            this.voxHolder.remove(this.voxHolder.children[0]);
+        const voxList = this.animations[this.current].vox;
+        const mesh = await voxList[this.frame];
+        this.voxHolder.add(mesh);
+        this.frame = this.frame + 1 === voxList.length ? this.frame = 0 : this.frame + 1;
+    }
+}
+exports.VoxMesh = VoxMesh;
+
+
+/***/ }),
+/* 15 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+let handlerId = 0;
+const handlers = {};
+let wsRes;
+let wsReady = new Promise(res => wsRes = res);
+const makeConnection = () => {
+    const ws = new WebSocket(`ws://${location.host}`);
+    ws.addEventListener('open', () => {
+        wsRes(ws);
+    });
+    ws.addEventListener('close', () => {
+        wsReady = new Promise(res => wsRes = res);
+        setTimeout(() => {
+            makeConnection();
+        }, 1000);
+    });
+    ws.addEventListener('message', (e) => {
+        // console.log(e.data);
+        const data = JSON.parse(e.data);
+        Object.keys(handlers).forEach(key => {
+            if (handlers[key][0] === data.topic) {
+                handlers[key][1](data);
+            }
+        });
+    });
+};
+makeConnection();
+exports.Socket = {
+    off(id) {
+        delete handlers[id];
+    },
+    on(wildcard, msgHandler) {
+        handlerId++;
+        handlers[handlerId] = [wildcard, msgHandler];
+        return handlerId;
+    },
+    send(msg) {
+        wsReady.then((ws) => ws.send(JSON.stringify(msg)));
+    }
+};
+
+
+/***/ }),
+/* 16 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
 class VoxelData {
     constructor() {
         this.size = null;
@@ -440,240 +1807,6 @@ const parseFloat = (bytes) => {
     const exponent = Number.parseInt(bin.substring(1, 9), 2) - 127;
     const fraction = Number.parseFloat("1." + Number.parseInt(bin.substring(9), 2));
     return sign * Math.pow(2, exponent) * fraction;
-};
-class MeshBuilder {
-    constructor(voxelData, param) {
-        if (MeshBuilder.textureFactory === null)
-            MeshBuilder.textureFactory = new TextureFactory();
-        param = param || {};
-        this.voxelData = voxelData;
-        this.voxelSize = param.voxelSize || MeshBuilder.DEFAULT_PARAM.voxelSize;
-        this.vertexColor = (param.vertexColor === undefined)
-            ? MeshBuilder.DEFAULT_PARAM.vertexColor
-            : param.vertexColor;
-        this.optimizeFaces = (param.optimizeFaces === undefined)
-            ? MeshBuilder.DEFAULT_PARAM.optimizeFaces
-            : param.optimizeFaces;
-        this.originToBottom = (param.originToBottom === undefined)
-            ? MeshBuilder.DEFAULT_PARAM.originToBottom
-            : param.originToBottom;
-        this.jitter = param.jitter === undefined ? MeshBuilder.DEFAULT_PARAM.jitter : param.jitter;
-        this.geometry = null;
-        this.material = null;
-        this.build();
-    }
-    build() {
-        this.geometry = new THREE.Geometry();
-        this.material = new THREE.MeshPhongMaterial();
-        // 隣接ボクセル検索用ハッシュテーブル
-        this.hashTable = createHashTable(this.voxelData.voxels);
-        const offsetX = (this.voxelData.size.x - 1) * -0.5;
-        const offsetY = (this.voxelData.size.y - 1) * -0.5;
-        const offsetZ = (this.originToBottom) ? 0 : (this.voxelData.size.z - 1) * -0.5;
-        const matrix = new THREE.Matrix4();
-        const jitter = this.jitter;
-        this.voxelData.voxels.forEach((voxel) => {
-            const voxGeometry = this._createVoxGeometry(voxel);
-            if (voxGeometry) {
-                voxel.x += Math.random() * jitter;
-                voxel.y += Math.random() * jitter;
-                voxel.z += Math.random() * jitter;
-                matrix.makeTranslation((voxel.x + offsetX) * this.voxelSize, (voxel.z + offsetZ) * this.voxelSize, -(voxel.y + offsetY) * this.voxelSize);
-                this.geometry.merge(voxGeometry, matrix);
-            }
-        });
-        if (this.optimizeFaces) {
-            this.geometry.mergeVertices();
-        }
-        this.geometry.computeFaceNormals();
-        if (this.vertexColor) {
-            this.material.vertexColors = THREE.FaceColors;
-        }
-        else {
-            this.material.map = MeshBuilder.textureFactory.getTexture(this.voxelData);
-        }
-    }
-    getTexture() {
-        return MeshBuilder.textureFactory.getTexture(this.voxelData);
-    }
-    _createVoxGeometry(voxel) {
-        // 隣接するボクセルを検索し、存在する場合は面を無視する
-        const ignoreFaces = [];
-        if (this.optimizeFaces) {
-            six.forEach(s => {
-                if (this.hashTable.has(voxel.x + s.x, voxel.y + s.y, voxel.z + s.z)) {
-                    ignoreFaces.push(s.ignoreFace);
-                }
-            });
-        }
-        // 6方向すべて隣接されていたらnullを返す
-        if (ignoreFaces.length === 6)
-            return null;
-        // 頂点データ
-        const voxVertices = voxVerticesSource.map((voxelInfo) => {
-            return new THREE.Vector3(voxelInfo.x * this.voxelSize * 0.5, voxelInfo.y * this.voxelSize * 0.5, voxelInfo.z * this.voxelSize * 0.5);
-        });
-        // 面データ
-        const voxFaces = voxFacesSource.map(f => {
-            return {
-                faceA: new THREE.Face3(f.faceA.a, f.faceA.b, f.faceA.c),
-                faceB: new THREE.Face3(f.faceB.a, f.faceB.b, f.faceB.c),
-            };
-        });
-        // 頂点色
-        let color;
-        if (this.vertexColor) {
-            const c = this.voxelData.palette[voxel.colorIndex];
-            color = new THREE.Color(c.r / 255, c.g / 255, c.b / 255);
-        }
-        const geometry = new THREE.Geometry();
-        geometry.faceVertexUvs[0] = [];
-        // 面を作る
-        voxFaces.forEach((faces, i) => {
-            if (ignoreFaces.indexOf(i) >= 0)
-                return;
-            if (this.vertexColor) {
-                faces.faceA.color = color;
-                faces.faceB.color = color;
-            }
-            else {
-                const uv = new THREE.Vector2((voxel.colorIndex + 0.5) / 256, 0.5);
-                geometry.faceVertexUvs[0].push([uv, uv, uv], [uv, uv, uv]);
-            }
-            geometry.faces.push(faces.faceA, faces.faceB);
-        });
-        // 使っている頂点を抽出
-        const usingVertices = {};
-        geometry.faces.forEach((face) => {
-            usingVertices[face.a] = true;
-            usingVertices[face.b] = true;
-            usingVertices[face.c] = true;
-        });
-        // 面の頂点インデックスを詰める処理
-        const splice = (index) => {
-            geometry.faces.forEach((face) => {
-                if (face.a > index)
-                    face.a -= 1;
-                if (face.b > index)
-                    face.b -= 1;
-                if (face.c > index)
-                    face.c -= 1;
-            });
-        };
-        // 使っている頂点のみ追加する
-        let j = 0;
-        voxVertices.forEach((vertex, i) => {
-            if (usingVertices[i]) {
-                geometry.vertices.push(vertex);
-            }
-            else {
-                splice(i - j);
-                j += 1;
-            }
-        });
-        return geometry;
-    }
-    createMesh() {
-        return new THREE.Mesh(this.geometry, this.material);
-    }
-    isOuterVoxel(voxel) {
-        return six.filter(s => {
-            return this.hashTable.has(voxel.x + s.x, voxel.y + s.y, voxel.z + s.z);
-        }).length < 6;
-    }
-}
-MeshBuilder.DEFAULT_PARAM = {
-    voxelSize: 1.0,
-    vertexColor: false,
-    optimizeFaces: true,
-    originToBottom: true,
-    jitter: 0
-};
-exports.MeshBuilder = MeshBuilder;
-// 隣接方向と無視する面の対応表
-const six = [
-    { x: -1, y: 0, z: 0, ignoreFace: 0 },
-    { x: 1, y: 0, z: 0, ignoreFace: 1 },
-    { x: 0, y: -1, z: 0, ignoreFace: 5 },
-    { x: 0, y: 1, z: 0, ignoreFace: 4 },
-    { x: 0, y: 0, z: -1, ignoreFace: 2 },
-    { x: 0, y: 0, z: 1, ignoreFace: 3 },
-];
-// 頂点データソース
-const voxVerticesSource = [
-    { x: -1, y: 1, z: -1 },
-    { x: 1, y: 1, z: -1 },
-    { x: -1, y: 1, z: 1 },
-    { x: 1, y: 1, z: 1 },
-    { x: -1, y: -1, z: -1 },
-    { x: 1, y: -1, z: -1 },
-    { x: -1, y: -1, z: 1 },
-    { x: 1, y: -1, z: 1 },
-];
-// 面データソース
-const voxFacesSource = [
-    { faceA: { a: 6, b: 2, c: 0 }, faceB: { a: 6, b: 0, c: 4 } },
-    { faceA: { a: 5, b: 1, c: 3 }, faceB: { a: 5, b: 3, c: 7 } },
-    { faceA: { a: 5, b: 7, c: 6 }, faceB: { a: 5, b: 6, c: 4 } },
-    { faceA: { a: 2, b: 3, c: 1 }, faceB: { a: 2, b: 1, c: 0 } },
-    { faceA: { a: 4, b: 0, c: 1 }, faceB: { a: 4, b: 1, c: 5 } },
-    { faceA: { a: 7, b: 3, c: 2 }, faceB: { a: 7, b: 2, c: 6 } },
-];
-const hash = (x, y, z) => {
-    return "x" + x + "y" + y + "z" + z;
-};
-const createHashTable = (voxels) => {
-    const hashTable = {};
-    voxels.forEach((v) => {
-        hashTable[hash(v.x, v.y, v.z)] = true;
-    });
-    hashTable.has = (x, y, z) => {
-        return hash(x, y, z) in this;
-    };
-    return hashTable;
-};
-class TextureFactory {
-    createCanvas(voxelData) {
-        const canvas = document.createElement("canvas");
-        canvas.width = 256;
-        canvas.height = 1;
-        const context = canvas.getContext("2d");
-        for (let i = 0, len = voxelData.palette.length; i < len; i++) {
-            const p = voxelData.palette[i];
-            context.fillStyle = "rgb(" + p.r + "," + p.g + "," + p.b + ")";
-            context.fillRect(i * 1, 0, 1, 1);
-        }
-        return canvas;
-    }
-    getTexture(voxelData) {
-        const palette = voxelData.palette;
-        const hashCode = getHashCode(palette);
-        if (hashCode in cache) {
-            // console.log("cache hit");
-            return cache[hashCode];
-        }
-        const canvas = this.createCanvas(voxelData);
-        const texture = new THREE.Texture(canvas);
-        texture.needsUpdate = true;
-        cache[hashCode] = texture;
-        return texture;
-    }
-}
-const cache = {};
-const getHashCode = (palette) => {
-    let str = "";
-    for (let i = 0; i < 256; i++) {
-        const p = palette[i];
-        str += hex(p.r);
-        str += hex(p.g);
-        str += hex(p.b);
-        str += hex(p.a);
-    }
-    return md5(str);
-};
-const hex = (num) => {
-    const r = num.toString(16);
-    return (r.length === 1) ? "0" + r : r;
 };
 const DefaultPalette = [
     { r: 255, g: 255, b: 255, a: 255 },
@@ -933,767 +2066,10 @@ const DefaultPalette = [
     { r: 34, g: 34, b: 34, a: 255 },
     { r: 17, g: 17, b: 17, a: 255 },
 ];
-/* md5.js - MD5 Message-Digest
-    * Copyright (C) 1999,2002 Masanao Izumo <iz@onicos.co.jp>
-    * Version: 2.0.0
-    * LastModified: May 13 2002
-    *
-    * This program is free software.  You can redistribute it and/or modify
-    * it without any warranty.  This library calculates the MD5 based on RFC1321.
-    * See RFC1321 for more information and algorism.
-    */
-/* Interface:
-    * md5_128bits = MD5_hash(data);
-    * md5_hexstr = MD5_hexhash(data);
-    */
-/* ChangeLog
-    * 2002/05/13: Version 2.0.0 released
-    * NOTICE: API is changed.
-    * 2002/04/15: Bug fix about MD5 length.
-    */
-//    md5_T[i] = parseInt(Math.abs(Math.sin(i)) * 4294967296.0);
-const MD5_T = new Array(0x00000000, 0xd76aa478, 0xe8c7b756, 0x242070db, 0xc1bdceee, 0xf57c0faf, 0x4787c62a, 0xa8304613, 0xfd469501, 0x698098d8, 0x8b44f7af, 0xffff5bb1, 0x895cd7be, 0x6b901122, 0xfd987193, 0xa679438e, 0x49b40821, 0xf61e2562, 0xc040b340, 0x265e5a51, 0xe9b6c7aa, 0xd62f105d, 0x02441453, 0xd8a1e681, 0xe7d3fbc8, 0x21e1cde6, 0xc33707d6, 0xf4d50d87, 0x455a14ed, 0xa9e3e905, 0xfcefa3f8, 0x676f02d9, 0x8d2a4c8a, 0xfffa3942, 0x8771f681, 0x6d9d6122, 0xfde5380c, 0xa4beea44, 0x4bdecfa9, 0xf6bb4b60, 0xbebfbc70, 0x289b7ec6, 0xeaa127fa, 0xd4ef3085, 0x04881d05, 0xd9d4d039, 0xe6db99e5, 0x1fa27cf8, 0xc4ac5665, 0xf4292244, 0x432aff97, 0xab9423a7, 0xfc93a039, 0x655b59c3, 0x8f0ccc92, 0xffeff47d, 0x85845dd1, 0x6fa87e4f, 0xfe2ce6e0, 0xa3014314, 0x4e0811a1, 0xf7537e82, 0xbd3af235, 0x2ad7d2bb, 0xeb86d391);
-const MD5_round1 = new Array(new Array(0, 7, 1), new Array(1, 12, 2), new Array(2, 17, 3), new Array(3, 22, 4), new Array(4, 7, 5), new Array(5, 12, 6), new Array(6, 17, 7), new Array(7, 22, 8), new Array(8, 7, 9), new Array(9, 12, 10), new Array(10, 17, 11), new Array(11, 22, 12), new Array(12, 7, 13), new Array(13, 12, 14), new Array(14, 17, 15), new Array(15, 22, 16));
-const MD5_round2 = new Array(new Array(1, 5, 17), new Array(6, 9, 18), new Array(11, 14, 19), new Array(0, 20, 20), new Array(5, 5, 21), new Array(10, 9, 22), new Array(15, 14, 23), new Array(4, 20, 24), new Array(9, 5, 25), new Array(14, 9, 26), new Array(3, 14, 27), new Array(8, 20, 28), new Array(13, 5, 29), new Array(2, 9, 30), new Array(7, 14, 31), new Array(12, 20, 32));
-const MD5_round3 = new Array(new Array(5, 4, 33), new Array(8, 11, 34), new Array(11, 16, 35), new Array(14, 23, 36), new Array(1, 4, 37), new Array(4, 11, 38), new Array(7, 16, 39), new Array(10, 23, 40), new Array(13, 4, 41), new Array(0, 11, 42), new Array(3, 16, 43), new Array(6, 23, 44), new Array(9, 4, 45), new Array(12, 11, 46), new Array(15, 16, 47), new Array(2, 23, 48));
-const MD5_round4 = new Array(new Array(0, 6, 49), new Array(7, 10, 50), new Array(14, 15, 51), new Array(5, 21, 52), new Array(12, 6, 53), new Array(3, 10, 54), new Array(10, 15, 55), new Array(1, 21, 56), new Array(8, 6, 57), new Array(15, 10, 58), new Array(6, 15, 59), new Array(13, 21, 60), new Array(4, 6, 61), new Array(11, 10, 62), new Array(2, 15, 63), new Array(9, 21, 64));
-function MD5_F(x, y, z) { return (x & y) | (~x & z); }
-function MD5_G(x, y, z) { return (x & z) | (y & ~z); }
-function MD5_H(x, y, z) { return x ^ y ^ z; }
-function MD5_I(x, y, z) { return y ^ (x | ~z); }
-const MD5_round = new Array(new Array(MD5_F, MD5_round1), new Array(MD5_G, MD5_round2), new Array(MD5_H, MD5_round3), new Array(MD5_I, MD5_round4));
-function MD5_pack(n32) {
-    return String.fromCharCode(n32 & 0xff) +
-        String.fromCharCode((n32 >>> 8) & 0xff) +
-        String.fromCharCode((n32 >>> 16) & 0xff) +
-        String.fromCharCode((n32 >>> 24) & 0xff);
-}
-function MD5_unpack(s4) {
-    return s4.charCodeAt(0) |
-        (s4.charCodeAt(1) << 8) |
-        (s4.charCodeAt(2) << 16) |
-        (s4.charCodeAt(3) << 24);
-}
-function MD5_number(n) {
-    while (n < 0)
-        n += 4294967296;
-    while (n > 4294967295)
-        n -= 4294967296;
-    return n;
-}
-function MD5_apply_round(x, s, f, abcd, r) {
-    let a, b, c, d;
-    let kk, ss, ii;
-    let t, u;
-    a = abcd[0];
-    b = abcd[1];
-    c = abcd[2];
-    d = abcd[3];
-    kk = r[0];
-    ss = r[1];
-    ii = r[2];
-    u = f(s[b], s[c], s[d]);
-    t = s[a] + u + x[kk] + MD5_T[ii];
-    t = MD5_number(t);
-    t = ((t << ss) | (t >>> (32 - ss)));
-    t += s[b];
-    s[a] = MD5_number(t);
-}
-function MD5_hash(data) {
-    let abcd, x, state, s;
-    let len, index, padLen, f, r;
-    let i, j, k;
-    let tmp;
-    state = new Array(0x67452301, 0xefcdab89, 0x98badcfe, 0x10325476);
-    len = data.length;
-    index = len & 0x3f;
-    padLen = (index < 56) ? (56 - index) : (120 - index);
-    if (padLen > 0) {
-        data += "\x80";
-        for (i = 0; i < padLen - 1; i++)
-            data += "\x00";
-    }
-    data += MD5_pack(len * 8);
-    data += MD5_pack(0);
-    len += padLen + 8;
-    abcd = new Array(0, 1, 2, 3);
-    x = new Array(16);
-    s = new Array(4);
-    for (k = 0; k < len; k += 64) {
-        for (i = 0, j = k; i < 16; i++, j += 4) {
-            x[i] = data.charCodeAt(j) |
-                (data.charCodeAt(j + 1) << 8) |
-                (data.charCodeAt(j + 2) << 16) |
-                (data.charCodeAt(j + 3) << 24);
-        }
-        for (i = 0; i < 4; i++)
-            s[i] = state[i];
-        for (i = 0; i < 4; i++) {
-            f = MD5_round[i][0];
-            r = MD5_round[i][1];
-            for (j = 0; j < 16; j++) {
-                MD5_apply_round(x, s, f, abcd, r[j]);
-                tmp = abcd[0];
-                abcd[0] = abcd[3];
-                abcd[3] = abcd[2];
-                abcd[2] = abcd[1];
-                abcd[1] = tmp;
-            }
-        }
-        for (i = 0; i < 4; i++) {
-            state[i] += s[i];
-            state[i] = MD5_number(state[i]);
-        }
-    }
-    return MD5_pack(state[0]) +
-        MD5_pack(state[1]) +
-        MD5_pack(state[2]) +
-        MD5_pack(state[3]);
-}
-function MD5_hexhash(data) {
-    let i, out, c;
-    let bit128;
-    bit128 = MD5_hash(data);
-    out = "";
-    for (i = 0; i < 16; i++) {
-        c = bit128.charCodeAt(i);
-        out += "0123456789abcdef".charAt((c >> 4) & 0xf);
-        out += "0123456789abcdef".charAt(c & 0xf);
-    }
-    return out;
-}
-const md5 = MD5_hexhash;
 
 
 /***/ }),
-/* 3 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const THREE = __webpack_require__(0);
-const vox_1 = __webpack_require__(9);
-const assets_1 = __webpack_require__(1);
-const state_1 = __webpack_require__(6);
-const character_controller_1 = __webpack_require__(10);
-const render_1 = __webpack_require__(11);
-class Scene extends THREE.Scene {
-    constructor(scenePromise) {
-        super();
-        this.state = new state_1.State({
-            render: new render_1.Render()
-        });
-        this.setupScene(scenePromise);
-        this.clock = new THREE.Clock();
-        window.scene = this;
-    }
-    async WatchEntity(entity) {
-        const o3d = new THREE.Object3D();
-        // only works one level deep
-        this.state.watch(`${entity.id}`, async (entityUp) => {
-            if (o3d.children.length) {
-                o3d.remove(o3d.children[0]);
-            }
-            o3d.add(await this.CreateEntity(entityUp));
-        });
-        return o3d;
-    }
-    async CreateEntity(entity) {
-        const o3d = new vox_1.default(entity);
-        if (entity.has && Object.keys(entity.has).length > 0) {
-            for (const childKey of Object.keys(entity.has)) {
-                o3d.add(await this.WatchEntity(await this.state.get(`${entity.id}.${childKey}`)));
-            }
-        }
-        return o3d;
-    }
-    async setupScene(scenePromise) {
-        const sceneData = await scenePromise;
-        exports.current = this;
-        this.players = {};
-        this.add(new THREE.AmbientLight(0xFFFFFF, 0.80));
-        const light = new THREE.DirectionalLight(0xFF9999, 0.5);
-        light.position.set(0, 5, 5);
-        this.add(light);
-        this.state.set('player', {
-            is: 'content/character/character.toml'
-        });
-        this.player = await this.WatchEntity(await this.state.get('player'));
-        this.add(this.player);
-        const controller = new character_controller_1.default(this.player);
-        Object.keys(sceneData.has).forEach(async (key) => {
-            this.state.set(key, sceneData.has[key]);
-            this.add(await this.WatchEntity(sceneData.has[key]));
-        });
-    }
-}
-exports.default = Scene;
-exports.current = new Scene(assets_1.Get('../content/scene/default.toml'));
-
-
-/***/ }),
-/* 4 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const KeyLookUp = {
-    13: 'enter',
-    8: 'backspace',
-    9: 'tab',
-    17: 'ctrl',
-    18: 'alt',
-    37: 'left',
-    38: 'up',
-    39: 'right',
-    40: 'down',
-    32: 'space'
-};
-window.addEventListener('blur', (e) => {
-    Object.keys(exports.keys).forEach((k) => {
-        exports.keys[k] = false;
-    });
-});
-window.addEventListener('gamepadconnected', e => {
-    const index = e.gamepad.index;
-    console.log("connection event for " + index);
-    const gamepad = navigator.getGamepads()[index];
-    exports.gamepads[index] = gamepad;
-    console.log("end of connection event for " + index);
-});
-window.addEventListener('gamepaddisconnected', e => {
-    console.log("disconnection event");
-    const index = e.gamepad.index;
-    delete exports.gamepads[index];
-});
-document.addEventListener('keyup', (e) => {
-    const lookUp = KeyLookUp[e.keyCode];
-    exports.keys[e.keyCode] = false;
-    exports.keys[lookUp || e.key.toLowerCase()] = false;
-});
-document.addEventListener('keydown', (e) => {
-    const lookUp = KeyLookUp[e.keyCode];
-    exports.keys[e.keyCode] = true;
-    exports.keys[lookUp || e.key.toLowerCase()] = true;
-});
-document.addEventListener('mousemove', e => {
-    exports.mouse.x = e.clientX;
-    exports.mouse.y = e.clientY;
-    const w = window.innerWidth;
-    const h = window.innerHeight;
-    exports.mouse.xp = exports.mouse.x / w - .5;
-    exports.mouse.yp = exports.mouse.y / h - .5;
-});
-document.addEventListener('mousedown', e => {
-    exports.mouse.left = true;
-});
-document.addEventListener('mouseup', e => {
-    exports.mouse.left = false;
-});
-exports.gamepads = [];
-exports.keys = {};
-exports.mouse = {
-    x: 0,
-    y: 0,
-    xp: 0,
-    yp: 0,
-    left: false,
-    right: false,
-};
-
-
-/***/ }),
-/* 5 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-console.log('connecting to ', location.host, location.port);
-let handlerId = 0;
-const handlers = {};
-let wsRes;
-let wsReady = new Promise(res => wsRes = res);
-const makeConnection = () => {
-    const ws = new WebSocket(`ws://${location.host}`);
-    ws.addEventListener('open', () => {
-        console.log('connected');
-        wsRes(ws);
-    });
-    ws.addEventListener('close', () => {
-        console.log('closed');
-        wsReady = new Promise(res => wsRes = res);
-        console.log('attempting reconnect...');
-        setTimeout(() => {
-            makeConnection();
-        }, 1000);
-    });
-    ws.addEventListener('message', (e) => {
-        // console.log(e.data);
-        const data = JSON.parse(e.data);
-        Object.keys(handlers).forEach(key => {
-            if (handlers[key][0] === data.topic) {
-                handlers[key][1](data);
-            }
-        });
-    });
-};
-makeConnection();
-exports.Off = (id) => {
-    delete handlers[id];
-};
-exports.On = (wildcard, msgHandler) => {
-    handlerId++;
-    handlers[handlerId] = [wildcard, msgHandler];
-    return handlerId;
-};
-exports.Send = (msg) => {
-    wsReady.then((ws) => ws.send(JSON.stringify(msg)));
-};
-
-
-/***/ }),
-/* 6 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const assets_1 = __webpack_require__(1);
-// should be smart enough to do on('key.whatever')
-// and wildcards
-// should autohandle is updates
-// should not handle has updates
-// any has should probably be its own State
-class State {
-    constructor(systems) {
-        this.handlers = {};
-        this.map = new Map();
-        this.clock = Date.now();
-        this.systems = systems;
-        Object.keys(this.systems).forEach(sysKey => {
-            systems[sysKey].Start(this);
-        });
-        this.tick = this.tick.bind(this);
-        this.tick();
-    }
-    off(key, fn) {
-        const handlers = this.handlers[key] = this.handlers[key] || [];
-        const idx = handlers.indexOf(fn);
-        if (idx === -1)
-            return false;
-        handlers.splice(idx, 1);
-        return true;
-    }
-    // needs to handle the IS chain
-    on(key, fn) {
-        const handlers = this.handlers[key] = this.handlers[key] || [];
-        handlers.push(fn);
-    }
-    async watch(key, fn) {
-        this.on(key, fn);
-        fn(await this.get(key));
-    }
-    get(key) {
-        return this.expandEntity(this.map.get(key));
-    }
-    // Make an entity including its templates
-    raw(key) {
-        return this.map.get(key);
-    }
-    async set(key, entity) {
-        // ensure
-        entity.id = key;
-        this.map.set(entity.id, entity);
-        const exEntity = await this.get(entity.id);
-        if (exEntity.has && Object.keys(exEntity.has).length > 0) {
-            Object.keys(exEntity.has).forEach(hasKey => {
-                // ensure key set
-                this.set(`${key}.${hasKey}`, exEntity.has[hasKey]);
-            });
-        }
-        if (entity.is) {
-            assets_1.On(entity.is, async () => {
-                this.fire(key);
-            });
-        }
-        this.fire(key);
-        return exEntity;
-    }
-    delete(key) {
-        if (typeof key === 'object') {
-            key = key.id;
-        }
-        const data = this.raw(key);
-        if (data && data.has && Object.keys(data.has).length > 0) {
-            Object.keys(data.has).forEach(hasKey => this.delete(`${key}.${hasKey}`));
-        }
-        const ret = this.map.delete(key);
-        this.fire(key, true);
-        delete this.handlers[key];
-        return ret;
-    }
-    toJSON() {
-        const result = [];
-        this.map.forEach((e, k) => {
-            result.push([k, e]);
-        });
-        return result;
-    }
-    tick() {
-        requestAnimationFrame(this.tick);
-        const now = Date.now();
-        const delta = now - this.clock;
-        this.clock = now;
-        Object.keys(this.systems).forEach(sysKey => {
-            const system = this.systems[sysKey];
-            system.Tick(delta);
-        });
-    }
-    async fire(key, deleted = false) {
-        const handlers = this.handlers[key] || [];
-        const val = deleted ? undefined : await this.get(key);
-        handlers.forEach(fn => fn(val));
-        // we fire whenever shit changes...
-        // good time to check to see if systems need updated
-        // man do we need deltas
-        Object.keys(this.systems).forEach(sysKey => {
-            const system = this.systems[sysKey];
-            const hasEntity = system.Has(val);
-            if (hasEntity && deleted) {
-                return system.Remove(val);
-            }
-            const hasComponent = val[sysKey] !== undefined;
-            if (hasComponent && !hasEntity) {
-                return system.Add(val);
-            }
-            if (!hasComponent && hasEntity) {
-                return system.Remove(val);
-            }
-        });
-    }
-    // Probably needs to be cached so we don't do this all the time
-    expandEntity(e, expand = false) {
-        return new Promise(async (resolve, reject) => {
-            if (!e)
-                reject(e);
-            const data = { has: {} };
-            if (e.is) {
-                // Get handles resolving is's
-                Object.assign(data, await assets_1.Get(e.is), { is: undefined });
-            }
-            Object.assign(data, e, {
-                has: Object.assign(data.has, e.has)
-            });
-            resolve(data);
-        });
-    }
-}
-exports.State = State;
-
-
-/***/ }),
-/* 7 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-class System {
-    constructor() {
-        this.entities = [];
-    }
-    Start(state) {
-        this.state = state;
-    }
-    Stop() {
-        // no-op
-    }
-    Add(entity) {
-        this.entities.push(entity.id);
-    }
-    Remove(entity) {
-        this.entities.splice(this.entities.indexOf(entity.id), 1);
-    }
-    Has(entity) {
-        return this.entities.indexOf(entity.id) !== -1;
-    }
-    Tick(delta) {
-        // no-op
-    }
-}
-exports.System = System;
-
-
-/***/ }),
-/* 8 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const THREE = __webpack_require__(0);
-const scene_1 = __webpack_require__(3);
-const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-const renderer = new THREE.WebGLRenderer({ antialias: true });
-camera.position.set(0, 2, 0);
-window.camera = camera;
-(() => {
-    const throttle = (type, name, obj) => {
-        obj = obj || window;
-        let running = false;
-        const func = () => {
-            if (running) {
-                return;
-            }
-            running = true;
-            requestAnimationFrame(() => {
-                obj.dispatchEvent(new CustomEvent(name));
-                running = false;
-            });
-        };
-        obj.addEventListener(type, func);
-    };
-    /* init - you can init any event */
-    throttle("resize", "optimizedResize");
-})();
-const handleResize = () => {
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    camera.aspect = window.innerWidth / window.innerHeight;
-};
-handleResize();
-window.addEventListener("optimizedResize", handleResize);
-// Render Loop
-const render = () => {
-    requestAnimationFrame(render);
-    renderer.render(scene_1.current, camera);
-};
-document.body.appendChild(renderer.domElement);
-render();
-
-
-/***/ }),
-/* 9 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const path = __webpack_require__(13);
-const THREE = __webpack_require__(0);
-const vox_1 = __webpack_require__(2);
-const assets_1 = __webpack_require__(1);
-const BuildVoxMesh = (voxelBin, data) => {
-    const builder = new vox_1.MeshBuilder(voxelBin, {
-        voxelSize: data.size,
-        vertexColor: true,
-        optimizeFaces: false,
-        jitter: data.jitter
-    });
-    const mesh = builder.createMesh();
-    mesh.castShadow = true;
-    mesh.receiveShadow = true;
-    return mesh;
-};
-class VoxModel extends THREE.Object3D {
-    constructor(voxData) {
-        super();
-        if (typeof voxData === 'string') {
-            assets_1.On(voxData, this.setVoxData.bind(this));
-            assets_1.Get(voxData);
-        }
-        else {
-            this.setVoxData(voxData);
-        }
-    }
-    async setVoxData(voxData) {
-        this.stop();
-        let data;
-        if (voxData instanceof Promise) {
-            data = await voxData;
-        }
-        else {
-            data = voxData;
-        }
-        this.data = data;
-        const dir = './vox';
-        this.animations = {};
-        data.jitter = data.jitter ? data.jitter : 0;
-        if (this.data.animation) {
-            Object.keys(this.data.animation).forEach(key => {
-                const anim = this.data.animation[key];
-                this.animations[key] = Object.assign({}, anim, { vox: anim.vox.map((file, i) => {
-                        const filePath = path.join(dir, file);
-                        return assets_1.Get(filePath).then(voxelBin => {
-                            return BuildVoxMesh(voxelBin, data);
-                        });
-                    }) });
-                anim.vox.forEach((file, i) => {
-                    const filePath = path.join(dir, file);
-                    assets_1.On(filePath, (voxelBin) => {
-                        this.animations[key].vox[i] = Promise.resolve(BuildVoxMesh(voxelBin, data));
-                        if (this.current) {
-                            this.play(this.current);
-                        }
-                    });
-                });
-            });
-        }
-        this.voxHolder = new THREE.Object3D();
-        if (data.position)
-            this.position.fromArray(data.position);
-        if (data.rotation)
-            this.rotation.fromArray(data.rotation.map(x => x * Math.PI / 180));
-        this.add(this.voxHolder);
-        if (this.data.default) {
-            this.play(this.data.default);
-        }
-    }
-    play(animation) {
-        if (this.timeout)
-            clearInterval(this.timeout);
-        this.current = animation;
-        this.frame = 0;
-        const anim = this.animations[this.current];
-        if (anim.vox.length > 0)
-            this.timeout = setInterval(this.step.bind(this), this.animations[animation].speed);
-        this.step();
-    }
-    stop() {
-        if (this.timeout)
-            clearTimeout(this.timeout);
-    }
-    async step() {
-        if (this.voxHolder.children[0])
-            this.voxHolder.remove(this.voxHolder.children[0]);
-        const voxList = this.animations[this.current].vox;
-        const mesh = await voxList[this.frame];
-        this.voxHolder.add(mesh);
-        this.frame = this.frame + 1 === voxList.length ? this.frame = 0 : this.frame + 1;
-    }
-}
-exports.default = VoxModel;
-
-
-/***/ }),
-/* 10 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const THREE = __webpack_require__(0);
-const input_1 = __webpack_require__(4);
-const assets_1 = __webpack_require__(1);
-let data = {
-    turnSpeed: 1,
-    forwardSpeed: 1,
-    cameraLerp: 1,
-    cameraOffset: [0, 5, 5],
-    cameraLookAt: [0, 0, 0]
-};
-assets_1.Watch('content/controller/character.toml', (newData) => {
-    console.log('got', newData);
-    data = newData;
-});
-class CharacterController {
-    constructor(target) {
-        this.target = target;
-        this.tick = this.tick.bind(this);
-        this.setup();
-    }
-    async setup() {
-        this.clock = new THREE.Clock();
-        this.target.position.set(0, 0, -5);
-        this.tick();
-    }
-    tick() {
-        const delta = this.clock.getDelta();
-        let forward = 0;
-        let turn = 0;
-        let up = 0;
-        requestAnimationFrame(this.tick);
-        if (input_1.keys.w)
-            forward = 1;
-        if (input_1.keys.s)
-            forward = -1;
-        if (input_1.keys.d)
-            turn = -1;
-        if (input_1.keys.a)
-            turn = 1;
-        if (input_1.keys.x)
-            up = 1;
-        if (input_1.keys.c)
-            up = -1;
-        this.target.rotateY(turn * delta * data.turnSpeed);
-        this.target.translateZ(forward * delta * data.forwardSpeed);
-        this.target.translateY(up * delta * data.forwardSpeed);
-        const walking = forward !== 0 || turn !== 0;
-        /*
-        if (walking && this.target.current !== 'walk') {
-            this.target.play('walk');
-        } else if (!walking && this.target.current !== 'idle') {
-            this.target.play('idle');
-        }*/
-        if (window.camera) {
-            const cam = window.camera;
-            const axis = new THREE.Vector3().fromArray(data.cameraLookAt);
-            // axis.applyQuaternion(this.target.quaternion);
-            const dstPosition = this.target.position.clone().add(axis);
-            const camPosition = this.target.position.clone().add(new THREE.Vector3().fromArray(data.cameraOffset));
-            cam.position.lerp(camPosition, data.cameraLerp);
-            cam.lookAt(dstPosition);
-        }
-    }
-}
-exports.default = CharacterController;
-
-
-/***/ }),
-/* 11 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const system_1 = __webpack_require__(7);
-const THREE = __webpack_require__(0);
-class Render extends system_1.System {
-    constructor() {
-        super(...arguments);
-        // Entire Scene
-        this.scene = new THREE.Scene();
-        this.entityMap = {};
-    }
-    UpdateO3D(entity) {
-        const o3d = this.entityMap[entity.id];
-        const t = entity.transform;
-        if (t) {
-            o3d.position.fromArray(entity.transform.position);
-        }
-    }
-    Add(entity) {
-        super.Add(entity);
-        const o3d = this.entityMap[entity.id] = new THREE.Object3D();
-        const list = entity.id.split('.');
-        const parent = list.length > 1
-            ? this.entityMap[list.slice(0, -1).join('.')]
-            : this.scene;
-        parent.add(o3d);
-        this.UpdateO3D(entity);
-    }
-    Remove(entity) {
-        super.Remove(entity);
-        this.entityMap[entity.id];
-    }
-}
-exports.Render = Render;
-
-
-/***/ }),
-/* 12 */
+/* 17 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -1814,7 +2190,7 @@ function fromByteArray (uint8) {
 
 
 /***/ }),
-/* 13 */
+/* 18 */
 /***/ (function(module, exports, __webpack_require__) {
 
 /* WEBPACK VAR INJECTION */(function(process) {// Copyright Joyent, Inc. and other Node contributors.
@@ -2042,10 +2418,10 @@ var substr = 'ab'.substr(-1) === 'b'
     }
 ;
 
-/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(14)))
+/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(19)))
 
 /***/ }),
-/* 14 */
+/* 19 */
 /***/ (function(module, exports) {
 
 // shim for using process in browser
@@ -2235,11 +2611,11 @@ process.umask = function() { return 0; };
 
 
 /***/ }),
-/* 15 */
+/* 20 */
 /***/ (function(module, exports, __webpack_require__) {
 
-var parser = __webpack_require__(17);
-var compiler = __webpack_require__(16);
+var parser = __webpack_require__(22);
+var compiler = __webpack_require__(21);
 
 module.exports = {
   parse: function(input) {
@@ -2250,7 +2626,7 @@ module.exports = {
 
 
 /***/ }),
-/* 16 */
+/* 21 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -2454,7 +2830,7 @@ module.exports = {
 
 
 /***/ }),
-/* 17 */
+/* 22 */
 /***/ (function(module, exports) {
 
 module.exports = (function() {
@@ -6302,3 +6678,4 @@ module.exports = (function() {
 
 /***/ })
 /******/ ]);
+//# sourceMappingURL=bundle.js.map

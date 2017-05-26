@@ -30,23 +30,19 @@ window.addEventListener('gamepadconnected', e => {
     const gamepad = navigator.getGamepads()[index];
     rawGamepads[index] = gamepad;
     rawGamepadEventers[index] = new GamepadEventer(gamepad);
-
-    console.log("connection event for " + index);
 });
 
 window.addEventListener('gamepaddisconnected', e => {
     const index = (e as any).gamepad.index;
     delete rawGamepads[index];
     delete rawGamepadEventers[index];
-
-    console.log("disconnection event for " + index);
 });
 
 export interface IGamepadSettings {
     deadZone?: number;
 }
 
-class GamepadEventSets {
+export class GamepadEventSets {
     onPressed: Array<(value: number) => void>;
 
     constructor() {
@@ -60,7 +56,7 @@ class GamepadEventSets {
     }
 }
 
-class GamepadEventMap {
+export class GamepadEventMap {
     [key: string]: GamepadEventSets
 }
 
@@ -82,7 +78,6 @@ export class GamepadEventer {
         this.gamepadEvents = new GamepadEventMap();
         for(const event in gamepadEventerTemplate) {
             if(gamepadEventerTemplate[event]) {
-                console.log('added input mapping for ' + event);
                 this.gamepadEvents[event] = new GamepadEventSets().copy(gamepadEventerTemplate[event]);
             }
         }

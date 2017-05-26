@@ -5,7 +5,7 @@ import {IMessage} from 'common/engine/message';
 let userIds = 0;
 const Users = new Map();
 
-export const Start = (server: Server) => {
+const start = (server: Server) => {
     const wss = new WebSocket.Server({ server });
     wss.on('connection', (ws) => {
         const id = userIds++;
@@ -30,7 +30,13 @@ export const Start = (server: Server) => {
     });
 };
 
-export const Broadcast = (msg: IMessage) => {
+const broadcast = (msg: IMessage) => {
     Users.forEach(fn => fn(msg));
+};
+
+
+export const Socket = {
+    start,
+    broadcast
 };
 

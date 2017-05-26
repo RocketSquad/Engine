@@ -3,7 +3,7 @@
         // "node_modules": true,
         ".gitignore": true,
         // "*.json": true,
-        "*config.js": true,
+        //"*config.js": true,
         "task.js": true
     },
     "files.autoSave": "onFocusChange"

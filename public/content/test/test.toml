@@ -1,9 +1,0 @@
-test = 'data'
-
-[has.bobs]
-    bob = 'bobbert'
-
-[has.movies]
-    is = 'content/test/movie-inherit.toml'
-    rambo = 'awesome'
-    aliens = 'awesome'

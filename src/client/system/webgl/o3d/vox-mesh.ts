@@ -1,6 +1,6 @@
 import * as path from 'path';
 import * as THREE from 'three';
-import { MeshBuilder } from '../lib/VoxMeshBuilder';
+import { MeshBuilder } from '../lib/vox-mesh-builder';
 import { Asset } from 'common/engine/asset';
 
 export interface IAnimation {
@@ -8,22 +8,22 @@ export interface IAnimation {
     vox: string[];
 }
 
-type ProcedurallyGeneratedScalar = number | [number, number];
+// The crap?
+export type ProcedurallyGeneratedScalar = number | [number, number];
 export function scalar(s: ProcedurallyGeneratedScalar): number {
     if (typeof(s) === "number") return s;
     return Math.random() * (s[1] - s[0]) + s[0];
 }
-
-//type ProcedurallyGeneratedVector = [number,number,number] | [[number, number, number], [number,number,number]];
 export function vector(s: any): [number,number,number] {
     if (typeof(s[0]) === "number") return s;
-    return [ 
+    return [
         Math.random() * (s[1][0] - s[0][0]) + s[0][0],
         Math.random() * (s[1][1] - s[0][1]) + s[0][1],
         Math.random() * (s[1][2] - s[0][2]) + s[0][2] ]
     ;
 }
-export interface IVoxData {
+
+export interface IVoxComponent {
     animation?: { [key: string]: IAnimation };
     size?: number;
     rotation?: number[];
@@ -45,28 +45,37 @@ const BuildVoxMesh = (voxelBin, data) => {
     return mesh;
 };
 
-export default class VoxModel extends THREE.Object3D {
-    data: IVoxData;
+export class VoxMesh extends THREE.Object3D {
+    data: IVoxComponent;
     animations: any;
     current: string;
     frame: number;
     timeout: number;
     voxHolder: THREE.Object3D;
+    count = 0;
 
-    constructor(voxData: IVoxData | Promise<IVoxData> | string) {
+    constructor(voxData: IVoxComponent | Promise<IVoxComponent> | string) {
         super();
         if(typeof voxData === 'string') {
-            On(voxData, this.setVoxData.bind(this));
-            Get(voxData);
+            Asset.on(voxData, this.setVoxData.bind(this));
+            Asset.get(voxData);
         } else {
             this.setVoxData(voxData);
         }
     }
 
-    async setVoxData(voxData: IVoxData | Promise<IVoxData>) {
-        this.stop();
+    update(data: IVoxComponent) {
+        if (data.position)
+            this.position.fromArray(data.position || [0, 0, 0]);
 
-        let data: IVoxData;
+        if (data.rotation)
+            this.rotation.fromArray((data.rotation || [0, 0, 0]).map(x => x * Math.PI / 180));
+    }
+
+    async setVoxData(voxData: IVoxComponent | Promise<IVoxComponent>) {
+        this.stop();
+        this.count++;
+        let data: IVoxComponent;
         if(voxData instanceof Promise) {
             data = await voxData;
         } else {
@@ -86,7 +95,7 @@ export default class VoxModel extends THREE.Object3D {
                     ...anim,
                     vox: anim.vox.map((file, i) => {
                         const filePath = path.join(dir, file);
-                        return Get(filePath).then(voxelBin => {
+                        return Asset.get(filePath).then(voxelBin => {
                             return BuildVoxMesh(voxelBin, data);
                         });
                     })
@@ -94,7 +103,7 @@ export default class VoxModel extends THREE.Object3D {
 
                 anim.vox.forEach((file, i) => {
                     const filePath = path.join(dir, file);
-                    On(filePath, (voxelBin) => {
+                    Asset.on(filePath, (voxelBin) => {
                         this.animations[key].vox[i] = Promise.resolve(BuildVoxMesh(voxelBin, data));
                         if(this.current) {
                             this.play(this.current);
@@ -104,18 +113,15 @@ export default class VoxModel extends THREE.Object3D {
             });
         }
 
+        this.update(data);
         this.voxHolder = new THREE.Object3D();
-        if (data.position)
-            this.position.fromArray(vector(data.position));
-
-        if (data.rotation)
-            this.rotation.fromArray(data.rotation.map(x => x * Math.PI / 180));
-
         this.add(this.voxHolder);
 
         if(this.data.default) {
             this.play(this.data.default);
         }
+
+
     }
 
     play(animation: string) {

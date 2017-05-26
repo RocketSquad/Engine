@@ -1,4 +1,4 @@
-import {Broadcast} from './ws';
+import {Socket} from './ws';
 import * as fs from 'fs';
 
 const gaze = require('gaze');
@@ -11,7 +11,7 @@ const FixPath = (filePath) => {
 gaze('public/**/*.toml', (err, watcher) => {
     watcher.on('changed', (filePath) => {
         fs.readFile(filePath, "utf8", (readErr, data) => {
-            Broadcast({
+            Socket.broadcast({
                 topic: 'asset',
                 payload: {
                     path: FixPath(filePath),
@@ -25,7 +25,7 @@ gaze('public/**/*.toml', (err, watcher) => {
 gaze('public/**/*.vox', (err, watcher) => {
     watcher.on('changed', (filePath) => {
         fs.readFile(filePath, (readErr, data) => {
-            Broadcast({
+            Socket.broadcast({
                 topic: 'asset',
                 payload: {
                     path: FixPath(filePath),

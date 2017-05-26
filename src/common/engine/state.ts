@@ -19,15 +19,21 @@ export class State {
     private handlers: {[key: string]: FEntityUpdateHandler[]} = {};
     private map = new Map<string, IEntity>();
     private systems: {[key: string]: ISystem};
+    private components: {[key: string]: ISystem[]} = {};
     private clock = Date.now();
 
     constructor(systems: {[key: string]: ISystem}) {
         this.systems = systems;
         Object.keys(this.systems).forEach(sysKey => {
-            systems[sysKey].start(this);
+            const system = systems[sysKey];
+            Object.keys(system.components).forEach(component => {
+                this.components[component] = this.components[component] || [];
+                this.components[component].push(system);
+            });
+            system.start(this);
         });
-        this.tick = this.tick.bind(this);
 
+        this.tick = this.tick.bind(this);
         this.tick();
     }
 
@@ -113,7 +119,7 @@ export class State {
         const now = Date.now();
         const delta = now - this.clock;
         this.clock = now;
-        
+
         Object.keys(this.systems).forEach(sysKey => {
             const system = this.systems[sysKey];
             system.tick(delta);
@@ -136,9 +142,17 @@ export class State {
                 return system.remove(val);
             }
 
-            const hasComponent = val[sysKey] !== undefined;
+            // delta changes would help this
+            const hasComponent = Object.keys(system.components).some(component => {
+                return val[component] !== undefined;
+            });
+
             if(hasComponent && !hasEntity) {
                 return system.add(val);
+            }
+
+            if(hasComponent && hasEntity) {
+                return system.update(val);
             }
 
             if(!hasComponent && hasEntity) {

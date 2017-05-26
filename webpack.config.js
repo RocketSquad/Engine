@@ -1,5 +1,7 @@
+const TsConfigPathsPlugin = require('awesome-typescript-loader').TsConfigPathsPlugin;
+
 module.exports = {
-    entry: "./src/client/game.ts",
+    entry: "./src/client",
     
     output: {
         filename: "bundle.js",
@@ -8,8 +10,13 @@ module.exports = {
 
     resolve: {
         // Add '.ts' and '.tsx' as resolvable extensions.
-        extensions: [".ts", ".tsx", ".js", ".json"]
+        extensions: [".ts", ".tsx", ".js", ".json"],
+        plugins: [
+            new TsConfigPathsPlugin()
+        ]
     },
+
+    devtool: "source-map",
 
     module: {
         rules: [

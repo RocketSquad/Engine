@@ -2,7 +2,7 @@
   "name": "rocketsquad-engine",
   "version": "1.0.0",
   "description": "",
-  "main": "node_modules/server/index.js",
+  "main": "gen/server/index.js",
   "dependencies": {
     "binary-loader": "0.0.1",
     "express": "^4.15.2",

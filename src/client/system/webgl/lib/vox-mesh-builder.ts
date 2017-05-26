@@ -1,5 +1,8 @@
 import * as THREE from 'three';
 
+export type Geometry = THREE.Geometry;
+export type Mesh = THREE.Mesh;
+
 export class MeshBuilder {
     static DEFAULT_PARAM = {
         voxelSize: 1.0,
@@ -84,7 +87,7 @@ export class MeshBuilder {
     getTexture() {
         return MeshBuilder.textureFactory.getTexture(this.voxelData);
     }
-    _createVoxGeometry(voxel) {
+    _createVoxGeometry(voxel): Geometry {
         // 隣接するボクセルを検索し、存在する場合は面を無視する
         const ignoreFaces = [];
         if (this.optimizeFaces) {
@@ -122,7 +125,7 @@ export class MeshBuilder {
             color = new THREE.Color(c.r / 255, c.g / 255, c.b / 255);
         }
 
-        const geometry = new THREE.Geometry();
+        const geometry: Geometry = new THREE.Geometry();
 
         geometry.faceVertexUvs[0] = [];
 
@@ -172,7 +175,7 @@ export class MeshBuilder {
         return geometry;
     }
 
-    createMesh() {
+    createMesh(): Mesh {
         return new THREE.Mesh(this.geometry, this.material);
     }
 

@@ -1,7 +1,6 @@
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
 
-
 export interface HudProps {
     health: number;
     ammo: number;

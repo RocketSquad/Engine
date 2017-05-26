@@ -1,9 +1,17 @@
+[has.player]
+    is = 'content/character/rain.toml'
+    position = [0, 2, 0]
+
+[has.player.controller]
+    turnSpeed =  1
+    forwardSpeed = 1
+    cameraLerp = 1
+    cameraOffset = [0, 5, 5]
+    cameraLookAt = [0, 0, 0]
+
 [has.floor]
     is = 'content/fallback/floor.toml'
     position = [0, 0, 0]
-
-[has.placeholder]
-    is = 'content/placeholder.toml'
 
 [has.background]
     is = 'content/fallback/background.toml'
@@ -14,3 +22,10 @@
 [has.another_floor]
     is = 'content/fallback/floor.toml'
     position = [-15, 0, 0]
+
+[has.ambient_light.ambient]
+    color = 16777215
+    intensity = 0.9
+
+[has.camera]
+    camera = {}

@@ -1,8 +1,9 @@
-default = "idle"
-size = 0.1
-jitter = 0.1
+[vox]
+    default = "idle"
+    size = 0.1
+    jitter = 0.1
 
-[animation.idle]
+[vox.animation.idle]
     speed = 1000
     vox = [
         "fallback/sexybackground.vox"

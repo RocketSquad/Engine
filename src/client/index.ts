@@ -1,42 +1,22 @@
-const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
-const renderer = new THREE.WebGLRenderer({ antialias: true });
+import {State, IEntity} from 'common/engine/state';
+import {Physics} from 'common/system/physics';
+import {WebGL} from 'client/system/webgl';
+import {Controller} from 'client/system/controller';
+import {Asset} from 'common/engine/asset';
 
-camera.position.set(0, 2, 0);
+// State starts ticking ASAP
+const state = new State({
+    controller: new Controller(),
+    physics: new Physics(),
+    webgl: new WebGL()
+});
 
-(window as IWindowGame).camera = camera;
-
-(() => {
-    const throttle = (type: string, name: string, obj?: any) => {
-        obj = obj || window;
-        let running = false;
-        const func = () => {
-            if (running) { return; }
-            running = true;
-            requestAnimationFrame(() => {
-                obj.dispatchEvent(new CustomEvent(name));
-                running = false;
-            });
-        };
-        obj.addEventListener(type, func);
-    };
-
-    /* init - you can init any event */
-    throttle("resize", "optimizedResize");
-}) ();
-
-const handleResize = () => {
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    camera.aspect = window.innerWidth/window.innerHeight;
-};
-
-handleResize();
-window.addEventListener("optimizedResize", handleResize);
-
-// Render Loop
-const render = () => {
-    requestAnimationFrame(render);
-    renderer.render(current, camera);
-};
-
-document.body.appendChild(renderer.domElement);
-render();
+// Inform state about it
+Asset.watch('content/scene/default.toml', (sceneData: IEntity) => {
+    // ignore top level components for now
+    if(sceneData.has) {
+        Object.keys(sceneData.has).forEach(key => {
+            state.set(key, sceneData.has[key]);
+        });
+    }
+});

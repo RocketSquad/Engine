@@ -1,9 +1,12 @@
-import {Devices} from './devices';
+import {keyboard, gamepad, mouse} from './devices';
 import {IGamepadSettings} from './devices/gamepad';
 import {Asset} from 'common/engine/asset';
 
 const inputActions: {[action: string]: Array<(value: number)=>void>} = {};
-const fireActions = (action: string, value: number) => {inputActions[action].forEach(fn => fn(value));};
+const fireActions = (action: string, value: number) => {
+    if(inputActions[action] === undefined) return;
+    inputActions[action].forEach(fn => fn(value));
+};
 
 interface IInputMapping {
     gamepad?: string;
@@ -17,15 +20,15 @@ interface IInputActionMap {
 }
 
 function setupInputMappings(inputActionMap: IInputActionMap) {
-    Devices.gamepad.setGamepadSettings(inputActionMap.gamepadSettings);
+    gamepad.setGamepadSettings(inputActionMap.gamepadSettings);
     for(const action in inputActionMap.actions) {
         if(inputActionMap.actions[action]) {
             for(const mapping of inputActionMap.actions[action]) {
                 if(mapping.gamepad) {
-                    const gp = Devices.gamepad;
+                    const gp = gamepad;
                     gp.addTemplateHandler(mapping.gamepad, value => {fireActions(action, mapping.amount * value);});
                 } else if(mapping.key) {
-                    Devices.keyboard.onKeyEvent(mapping.key, Devices.keyboard.KS_PRESSED, () => {
+                    keyboard.onKeyEvent(mapping.key, keyboard.KS_PRESSED, () => {
                         fireActions(action, mapping.amount);
                     });
                 }
@@ -45,5 +48,7 @@ export const Input = {
     off(actionName: string, handlerId: number) {
         delete inputActions[actionName][handlerId];
     },
-    ...Devices
+    gamepad,
+    keyboard,
+    mouse
 };

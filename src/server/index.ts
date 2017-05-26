@@ -1,6 +1,6 @@
 import * as express from 'express';
-import * as ws from './engine/ws';
-import './assets';
+import {Socket} from './engine/ws';
+import './engine/asset-server';
 
 const http = require('http');
 const app = express();
@@ -8,7 +8,7 @@ const app = express();
 app.use(express.static('public'));
 const server = http.createServer(app);
 
-ws.Start(server);
+Socket.start(server);
 server.listen(8080, function listening() {
     console.log('Listening on %d', server.address().port);
 });
