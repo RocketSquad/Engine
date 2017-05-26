@@ -8,7 +8,54 @@ export interface IEntity {
     [key: string]: any;
 }
 
-export type FEntityUpdateHandler = (entity: IEntity) => void;
+export interface IAction {
+    type: string;
+    [key: string]: any;
+}
+
+export interface IActionSet extends IAction {
+    type: 'SET';
+    // EntityId#ComponentPath
+    path: string;
+    // what to set it to
+    data: any;
+}
+
+// tree1.apple#position
+
+export const DoSet = (path: string, data: any): IActionSet => {
+    return {
+        type: 'SET',
+        path,
+        data
+    };
+};
+
+const ResolvePath = (obj: any, path: string[]) => {
+    const key = path.shift();
+    let val = obj[key] !== undefined ? obj[key] : obj[key] = {};
+    if(path.length > 1) {
+        return ResolvePath(val, path);
+    } else {
+        return val;
+    }
+};
+
+const HandleSet = (action: IActionSet, state: State) => {
+    const [entityId, componentPath] = action.path.split('#');
+    const comp = componentPath.split('.');
+    const key = comp.pop();
+    const entity = state.raw(entityId);
+    let obj = entity;
+
+    if(comp.length) {
+        obj = ResolvePath(obj, comp);
+    }
+
+    obj[key] = action.data;
+
+    state.set(entityId, entity);
+};
 
 // should be smart enough to do on('key.whatever')
 // and wildcards
@@ -16,11 +63,11 @@ export type FEntityUpdateHandler = (entity: IEntity) => void;
 // should not handle has updates
 // should handle reducers/have a set of reducers
 export class State {
-    private handlers: {[key: string]: FEntityUpdateHandler[]} = {};
     private map = new Map<string, IEntity>();
     private systems: {[key: string]: ISystem};
     private components: {[key: string]: ISystem[]} = {};
     private clock = Date.now();
+    private actions: {[key: string]: IAction} = {};
 
     constructor(systems: {[key: string]: ISystem}) {
         this.systems = systems;
@@ -37,25 +84,17 @@ export class State {
         this.tick();
     }
 
-    off(key: string, fn: FEntityUpdateHandler) {
-        const handlers = this.handlers[key] = this.handlers[key] || [];
-        const idx = handlers.indexOf(fn);
-        if(idx === -1) return false;
-        handlers.splice(idx, 1);
-        return true;
+    /* ACTION METHODS */
+    consume(action: IAction) {
+
     }
 
-    // needs to handle the IS chain
-    on(key: string, fn: FEntityUpdateHandler) {
-        const handlers = this.handlers[key] = this.handlers[key] || [];
-        handlers.push(fn);
+    dispatch(action: IAction) {
+
     }
 
-    async watch(key: string, fn: FEntityUpdateHandler) {
-        this.on(key, fn);
-        fn(await this.get(key));
-    }
 
+    /* LIFE CYCLE METHODS */
     get(key: string): Promise<IEntity> {
         return this.expandEntity(this.map.get(key));
     }
@@ -63,6 +102,11 @@ export class State {
     // Make an entity including its templates
     raw(key: string) {
         return this.map.get(key);
+    }
+
+    rawSet(key: string, entity: IEntity) {
+        entity.id = key;
+        this.map.set(entity.id, entity);
     }
 
     async set(key: string, entity: IEntity) {
@@ -78,12 +122,15 @@ export class State {
             });
         }
 
+        // should only subscribe if is changes
         if(entity.is) {
             Asset.on(entity.is, async () => {
                 this.fire(key);
             });
         }
+
         this.fire(key);
+
         return exEntity;
     }
 
@@ -100,7 +147,6 @@ export class State {
         const ret = this.map.delete(key);
 
         this.fire(key, true);
-        delete this.handlers[key];
         return ret;
     }
 
@@ -114,6 +160,7 @@ export class State {
         return result;
     }
 
+    // Tick systems
     private tick() {
         requestAnimationFrame(this.tick);
         const now = Date.now();
@@ -126,10 +173,9 @@ export class State {
         });
     }
 
+    // Inform systems about entities with components they have interest in
     private async fire(key: string, deleted = false) {
-        const handlers = this.handlers[key] || [];
         const val = deleted ? undefined : await this.get(key);
-        handlers.forEach(fn => fn(val));
 
         // we fire whenever shit changes...
         // good time to check to see if systems need updated
