@@ -69,7 +69,7 @@ export class VoxMesh extends THREE.Object3D {
             this.position.fromArray(data.position || [0, 0, 0]);
 
         if (data.rotation)
-            this.rotation.fromArray((data.rotation || [0, 0, 0]).map(x => x * Math.PI / 180));
+            this.rotation.fromArray((data.rotation || [0, 0, 0]).map(THREE.Math.degToRad));
     }
 
     async setVoxData(voxData: IVoxComponent | Promise<IVoxComponent>) {

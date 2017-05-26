@@ -51,7 +51,7 @@ const TransformUpdate = (o3d, data) => {
     if(data.position)
         o3d.position.fromArray(data.position);
     if(data.rotation)
-        o3d.rotation.fromArray(data.rotation);
+        o3d.rotation.fromArray(data.rotation.map(THREE.Math.radToDeg));
 };
 
 const TargetUpdate = (o3d, data) => {

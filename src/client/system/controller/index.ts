@@ -42,8 +42,11 @@ export class Controller extends System {
         if(entity.controller)
             this.controllers[entity.id] = entity;
 
-        if(entity.camera)
+        if(entity.camera) {
+            entity.camera.position = entity.camera.position || [0, 0, 0];
+            entity.camera.rotation = entity.camera.rotation || [0, 0, 0];
             this.camera = entity;
+        }
 
         // TODO: Use our redux patternz
         // TODO: Oh god please schema come soon
@@ -52,7 +55,6 @@ export class Controller extends System {
             entity.rotation = entity.rotation || [0, 0, 0];
             this.state.set(entity.id, entity);
         }
-
     }
 
     remove(entity: IEntity) {
@@ -80,36 +82,38 @@ export class Controller extends System {
             const t3d = Controller.t3d;
             const keys = Input.keyboard.rawKeys;
 
-            const forward = (keys.w && 1) || (keys.s && -1) || 0;
+            const forward = (keys.w && -1) || (keys.s && 1) || 0;
             const turn = (keys.a && -1) || (keys.d && 1) || 0;
             const up = (keys.x && -1) || (keys.c && 1) || 0;
 
             t3d.position.fromArray(entity.position);
-            t3d.rotation.fromArray(entity.rotation);
+            t3d.rotation.fromArray(entity.rotation.map(THREE.Math.degToRad));
 
             t3d.rotateY(turn * delta * controls.turnSpeed);
             t3d.translateZ(forward * delta * controls.forwardSpeed);
             t3d.translateY(up * delta * controls.forwardSpeed);
 
             entity.position = t3d.position.toArray();
-            entity.rotation = t3d.rotation.toArray();
+            entity.rotation = t3d.rotation.toArray().slice(0, 3).map(THREE.Math.radToDeg);
 
             this.state.set(entity.id, entity);
             if(this.camera) {
                 const axis = new THREE.Vector3().fromArray(controls.cameraLookAt);
+                const camera = this.camera.camera;
 
                 const dstPosition = t3d.position.clone().add(axis);
                 const camPosition = t3d.position.clone().add(new THREE.Vector3().fromArray(controls.cameraOffset));
 
-                t3d.position.fromArray(this.camera.position);
-                t3d.rotation.fromArray(this.camera.rotation);
+                t3d.position.fromArray(camera.position);
+                t3d.rotation.fromArray(camera.rotation);
 
                 t3d.position.lerp(camPosition, controls.cameraLerp);
                 t3d.lookAt(dstPosition);
 
-                this.camera.position = t3d.position.toArray();
-                this.camera.rotation = t3d.rotation.toArray();
+                camera.position = t3d.position.toArray();
+                //camera.rotation = t3d.rotation.toArray().slice(0, 3).map(THREE.Math.radToDeg);
 
+                console.log(this.camera.id, this.camera);
                 this.state.set(this.camera.id, this.camera);
             }
         });

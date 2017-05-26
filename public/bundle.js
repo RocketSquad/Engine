@@ -272,8 +272,11 @@ class Controller extends system_1.System {
         super.add(entity);
         if (entity.controller)
             this.controllers[entity.id] = entity;
-        if (entity.camera)
+        if (entity.camera) {
+            entity.camera.position = entity.camera.position || [0, 0, 0];
+            entity.camera.rotation = entity.camera.rotation || [0, 0, 0];
             this.camera = entity;
+        }
         // TODO: Use our redux patternz
         // TODO: Oh god please schema come soon
         if (!entity.position || !entity.rotation) {
@@ -301,27 +304,29 @@ class Controller extends system_1.System {
             const controls = Object.assign({}, defaults, entity.controller);
             const t3d = Controller.t3d;
             const keys = input_1.Input.keyboard.rawKeys;
-            const forward = (keys.w && 1) || (keys.s && -1) || 0;
+            const forward = (keys.w && -1) || (keys.s && 1) || 0;
             const turn = (keys.a && -1) || (keys.d && 1) || 0;
             const up = (keys.x && -1) || (keys.c && 1) || 0;
             t3d.position.fromArray(entity.position);
-            t3d.rotation.fromArray(entity.rotation);
+            t3d.rotation.fromArray(entity.rotation.map(THREE.Math.degToRad));
             t3d.rotateY(turn * delta * controls.turnSpeed);
             t3d.translateZ(forward * delta * controls.forwardSpeed);
             t3d.translateY(up * delta * controls.forwardSpeed);
             entity.position = t3d.position.toArray();
-            entity.rotation = t3d.rotation.toArray();
+            entity.rotation = t3d.rotation.toArray().slice(0, 3).map(THREE.Math.radToDeg);
             this.state.set(entity.id, entity);
             if (this.camera) {
                 const axis = new THREE.Vector3().fromArray(controls.cameraLookAt);
+                const camera = this.camera.camera;
                 const dstPosition = t3d.position.clone().add(axis);
                 const camPosition = t3d.position.clone().add(new THREE.Vector3().fromArray(controls.cameraOffset));
-                t3d.position.fromArray(this.camera.position);
-                t3d.rotation.fromArray(this.camera.rotation);
+                t3d.position.fromArray(camera.position);
+                t3d.rotation.fromArray(camera.rotation);
                 t3d.position.lerp(camPosition, controls.cameraLerp);
                 t3d.lookAt(dstPosition);
-                this.camera.position = t3d.position.toArray();
-                this.camera.rotation = t3d.rotation.toArray();
+                camera.position = t3d.position.toArray();
+                //camera.rotation = t3d.rotation.toArray().slice(0, 3).map(THREE.Math.radToDeg);
+                console.log(this.camera.id, this.camera);
                 this.state.set(this.camera.id, this.camera);
             }
         });
@@ -367,7 +372,7 @@ const TransformUpdate = (o3d, data) => {
     if (data.position)
         o3d.position.fromArray(data.position);
     if (data.rotation)
-        o3d.rotation.fromArray(data.rotation);
+        o3d.rotation.fromArray(data.rotation.map(THREE.Math.radToDeg));
 };
 const TargetUpdate = (o3d, data) => {
     TransformUpdate(o3d, data);
@@ -586,7 +591,7 @@ class State {
     tick() {
         requestAnimationFrame(this.tick);
         const now = Date.now();
-        const delta = now - this.clock;
+        const delta = (now - this.clock) * 0.001;
         this.clock = now;
         Object.keys(this.systems).forEach(sysKey => {
             const system = this.systems[sysKey];
@@ -1442,7 +1447,7 @@ class VoxMesh extends THREE.Object3D {
         if (data.position)
             this.position.fromArray(data.position || [0, 0, 0]);
         if (data.rotation)
-            this.rotation.fromArray((data.rotation || [0, 0, 0]).map(x => x * Math.PI / 180));
+            this.rotation.fromArray((data.rotation || [0, 0, 0]).map(THREE.Math.degToRad));
     }
     async setVoxData(voxData) {
         this.stop();

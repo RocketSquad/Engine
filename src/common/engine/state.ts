@@ -117,7 +117,7 @@ export class State {
     private tick() {
         requestAnimationFrame(this.tick);
         const now = Date.now();
-        const delta = now - this.clock;
+        const delta = (now - this.clock) * 0.001;
         this.clock = now;
 
         Object.keys(this.systems).forEach(sysKey => {
