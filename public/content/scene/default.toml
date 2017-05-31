@@ -2,10 +2,6 @@
     is = 'content/character/sword.toml'
     position = [0, 5, 0]
 
-[has.sword]
-    is = 'content/sword.toml'
-    asdasdsa = 'asdas'
-    
 [has.player.body]
     mass = 200
     size = [1, 1, 1]
@@ -32,9 +28,6 @@
 [has.floor2.body]
     mass = 0
     size = [20.0, 1.0, 15.0]
-# [has.another_floor]
-#     is = 'content/fallback/floor.toml'
-#     position = [-15, 0, 0]
 
 [has.background]
     is = 'content/fallback/background.toml'

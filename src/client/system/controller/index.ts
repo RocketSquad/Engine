@@ -1,5 +1,5 @@
 import {ISystem, System} from 'common/engine/system';
-import {IEntity, State} from 'common/engine/state';
+import {IEntity, State, DoSet} from 'common/engine/state';
 import {Input} from 'client/engine/input';
 import * as THREE from 'three';
 
@@ -27,7 +27,7 @@ const defaultTransform = {
 export class Controller extends System {
     // used for three math operations
     private static t3d = new THREE.Object3D();
-    
+
     public components = {
         controller: 'IControllerComponent',
         camera: 'ICameraComponent'
@@ -41,20 +41,26 @@ export class Controller extends System {
     add(entity: IEntity) {
         super.add(entity);
         if(entity.controller)
-            this.controllers[entity.id] = entity;
+            this.update_controller(entity);
 
         if(entity.camera) {
-            entity.camera.position = entity.camera.position || [0, 0, 0];
-            entity.camera.rotation = entity.camera.rotation || [0, 0, 0];
-            this.camera = entity;
+            if(!entity.camera.position || !entity.camera.rotation) {
+                this.state.dispatch(DoSet(entity.id, 'camera', Object.assign({
+                    position: [0, 0, 0],
+                    rotation: [0, 0, 0]
+                }, entity.camera)));
+            }
+
+            this.update_camera(entity);
         }
 
-        // TODO: Use our redux patternz
-        // TODO: Oh god please schema come soon
-        if(!entity.position || !entity.rotation) {
-            entity.position = entity.position || [0, 0, 0];
-            entity.rotation = entity.rotation || [0, 0, 0];
-            this.state.set(entity.id, entity);
+        // Require position and rotation set
+        if(!entity.position) {
+            this.state.dispatch(DoSet(entity.id, 'position', [0, 0, 0]));
+        }
+
+        if(!entity.rotation) {
+            this.state.dispatch(DoSet(entity.id, 'rotation', [0, 0, 0]));
         }
     }
 
@@ -66,11 +72,12 @@ export class Controller extends System {
             delete this.camera;
     }
 
-    update(entity: IEntity) {
-        if(entity.controller)
-            this.controllers[entity.id] = entity;
-        if(entity.camera)
-            this.camera = entity;
+    update_camera(entity) {
+        this.camera = entity;
+    }
+
+    update_controller(entity) {
+        this.controllers[entity.id] = entity;
     }
 
     tick(delta) {
@@ -88,22 +95,25 @@ export class Controller extends System {
             const turn = (keys.a && 1) || (keys.d && -1) || 0;
             const up = (keys.x && -1) || (keys.c && 1) || 0;
 
-            t3d.position.fromArray(entity.position);
+            const pos = entity.position || [0, 0, 0];
+            t3d.position.fromArray(pos);
             t3d.rotation.fromArray((entity.rotation || [0, 0, 0]).map(THREE.Math.degToRad));
 
             t3d.rotateY(turn * delta * controls.turnSpeed);
             t3d.translateZ(forward * delta * controls.forwardSpeed);
             t3d.translateY(up * delta * controls.forwardSpeed);
 
-            entity.body.velocity = t3d.position.toArray().map((n, i) => (n - entity.position[i]) * 100);
-            entity.rotation = t3d.rotation.toArray().slice(0, 3).map(THREE.Math.radToDeg);
+            const velocity = t3d.position.toArray().map((n, i) => (n - pos[i]) * 100);
+            const rotation = t3d.rotation.toArray().slice(0, 3).map(THREE.Math.radToDeg);
 
             if(keys.space && this.cooldown < 0) {
-                entity.body.velocity[1] = 100;
+                velocity[1] = 100;
                 this.cooldown = 1;
             }
 
-            this.state.set(entity.id, entity);
+            this.state.dispatch(DoSet(entity.id, 'rotation', rotation));
+            this.state.dispatch(DoSet(entity.id, 'body', Object.assign({}, entity.body, {velocity})));
+
             if(this.camera) {
                 const axis = new THREE.Vector3().fromArray(controls.cameraLookAt);
                 const camera = this.camera.camera;
@@ -115,9 +125,13 @@ export class Controller extends System {
                 t3d.rotation.fromArray(camera.rotation.map(THREE.Math.degToRad));
 
                 t3d.position.lerp(camPosition, controls.cameraLerp);
-                camera.target = dstPosition.toArray();
-                camera.position = t3d.position.toArray();
-                this.state.set(this.camera.id, this.camera);
+
+                const newCamera = Object.assign({}, camera, {
+                    target: dstPosition.toArray(),
+                    position: t3d.position.toArray()
+                });
+
+                this.state.dispatch(DoSet(this.camera.id, 'camera', newCamera));
             }
         });
     }

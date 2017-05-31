@@ -1,6 +1,7 @@
 {
     "compilerOptions": {
         "outDir": "./gen/",
+        "alwaysStrict": true,
         "lib": ["es2017", "dom"],
         "module": "commonjs",
         "baseUrl": "./src",

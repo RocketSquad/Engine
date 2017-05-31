@@ -1,10 +1,7 @@
 import {ISystem, System} from 'common/engine/system';
 import {IEntity, State} from 'common/engine/state';
-
 import * as THREE from 'three';
 import {IVoxComponent, VoxMesh} from './o3d/vox-mesh';
-
-const gravity = -9.8;
 
 const throttle = (type: string, name: string, obj?: any) => {
     obj = obj || window;
@@ -85,15 +82,10 @@ export class WebGL extends System {
         this.handleResize();
         document.body.appendChild(this.renderer.domElement);
     }
-
-    update(entity: IEntity) {
+ 
+    update(entity: IEntity, component: string) {
         const o3d = this.updateO3D(entity);
-
-        if(entity.body) {
-            const body = this.bodies[entity.id];
-            body.update();
-            body.mass = entity.body.mass;
-        }
+        super.update(entity, component);
     }
 
     add(entity: IEntity) {

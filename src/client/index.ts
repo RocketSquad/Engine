@@ -16,7 +16,7 @@ Asset.watch('content/scene/default.toml', (sceneData: IEntity) => {
     // ignore top level components for now
     if(sceneData.has) {
         Object.keys(sceneData.has).forEach(key => {
-            state.set(key, sceneData.has[key]);
+            state.load(key, sceneData.has[key]);
         });
     }
 });

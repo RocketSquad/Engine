@@ -15,59 +15,39 @@ export interface IAction {
 
 export interface IActionSet extends IAction {
     type: 'SET';
-    // EntityId#ComponentPath
-    path: string;
+    entityId: string;
+    component: string;
     // what to set it to
     data: any;
 }
 
-// tree1.apple#position
+export const DoSet = (entityId: string, component: string, data: any): IActionSet => {
+    if(['is', 'has'].indexOf(component) !== -1) {
+        throw Error('Don\'t use Set Action for setting is/has, only components');
+    }
 
-export const DoSet = (path: string, data: any): IActionSet => {
     return {
         type: 'SET',
-        path,
+        component,
+        entityId,
         data
     };
 };
 
-const ResolvePath = (obj: any, path: string[]) => {
-    const key = path.shift();
-    let val = obj[key] !== undefined ? obj[key] : obj[key] = {};
-    if(path.length > 1) {
-        return ResolvePath(val, path);
-    } else {
-        return val;
-    }
+const HandleSet = (state: State, action: IActionSet) => {
+    const entity = state.raw(action.entityId);
+    entity[action.component] = action.data;
+    state.set(action.entityId, entity);
+    state.fireComponent(action.entityId, action.component);
 };
 
-const HandleSet = (action: IActionSet, state: State) => {
-    const [entityId, componentPath] = action.path.split('#');
-    const comp = componentPath.split('.');
-    const key = comp.pop();
-    const entity = state.raw(entityId);
-    let obj = entity;
-
-    if(comp.length) {
-        obj = ResolvePath(obj, comp);
-    }
-
-    obj[key] = action.data;
-
-    state.set(entityId, entity);
-};
-
-// should be smart enough to do on('key.whatever')
-// and wildcards
-// should autohandle is updates
-// should not handle has updates
-// should handle reducers/have a set of reducers
 export class State {
+    public actions = new Map<string, IAction[]>();
+    public nextActions = new Map<string, IAction[]>();
     private map = new Map<string, IEntity>();
     private systems: {[key: string]: ISystem};
     private components: {[key: string]: ISystem[]} = {};
     private clock = Date.now();
-    private actions: {[key: string]: IAction} = {};
 
     constructor(systems: {[key: string]: ISystem}) {
         this.systems = systems;
@@ -84,15 +64,22 @@ export class State {
         this.tick();
     }
 
-    /* ACTION METHODS */
-    consume(action: IAction) {
+    dispatch(action: IAction, next = false) {
+        const actionMap = next ? this.nextActions : this.actions;
+        let actions;
+        if(!actionMap.has(action.type)) {
+            actions = [];
+        } else {
+            actions = actionMap.get(action.type);
+        }
 
+        if(action.type === 'SET' && !next) {
+            HandleSet(this, action as IActionSet);
+        }
+
+        actions.push(action);
+        actionMap.set(action.type, actions);
     }
-
-    dispatch(action: IAction) {
-
-    }
-
 
     /* LIFE CYCLE METHODS */
     get(key: string): Promise<IEntity> {
@@ -104,12 +91,14 @@ export class State {
         return this.map.get(key);
     }
 
-    rawSet(key: string, entity: IEntity) {
+    // Set an entities data
+    set(key: string, entity: IEntity) {
         entity.id = key;
         this.map.set(entity.id, entity);
     }
 
-    async set(key: string, entity: IEntity) {
+    // Load and upgrade entities
+    async load(key: string, entity: IEntity) {
         // ensure
         entity.id = key;
         this.map.set(entity.id, entity);
@@ -160,6 +149,19 @@ export class State {
         return result;
     }
 
+    public async fireComponent(entityId: string, component: string) {
+        const val = await this.get(entityId);
+        Object.keys(this.systems).forEach(sysKey => {
+            const system = this.systems[sysKey];
+            const hasEntity = system.has(val);
+            const hasComponent = system.components[component] !== undefined;
+
+            if(hasEntity && hasComponent) {
+                system.update(val, component);
+            }
+        });
+    }
+
     // Tick systems
     private tick() {
         requestAnimationFrame(this.tick);
@@ -171,15 +173,25 @@ export class State {
             const system = this.systems[sysKey];
             system.tick(delta);
         });
+
+        // clear old actions, use next actions
+        this.actions.clear();
+        const flipAction = this.actions;
+        this.actions = this.nextActions;
+        this.nextActions = flipAction;
+
+        if(this.actions.has('SET')) {
+            const setActions = this.actions.get('SET');
+            setActions.forEach(HandleSet.bind(null, this));
+        }
     }
 
     // Inform systems about entities with components they have interest in
     private async fire(key: string, deleted = false) {
         const val = deleted ? undefined : await this.get(key);
+        // don't do this in prod
+        const entity = Object.freeze(Object.assign({}, val));
 
-        // we fire whenever shit changes...
-        // good time to check to see if systems need updated
-        // man do we need deltas
         Object.keys(this.systems).forEach(sysKey => {
             const system = this.systems[sysKey];
             const hasEntity = system.has(val);
@@ -194,15 +206,18 @@ export class State {
             });
 
             if(hasComponent && !hasEntity) {
-                return system.add(val);
+                return system.add(entity);
             }
 
             if(hasComponent && hasEntity) {
-                return system.update(val);
+                // HARD RESET
+                system.remove(entity);
+                system.add(entity);
+                return;
             }
 
             if(!hasComponent && hasEntity) {
-                return system.remove(val);
+                return system.remove(entity);
             }
         });
     }

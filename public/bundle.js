@@ -204,13 +204,209 @@ module.exports = THREE;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+const asset_1 = __webpack_require__(0);
+exports.DoSet = (entityId, component, data) => {
+    if (['is', 'has'].indexOf(component) !== -1) {
+        throw Error('Don\'t use Set Action for setting is/has, only components');
+    }
+    return {
+        type: 'SET',
+        component,
+        entityId,
+        data
+    };
+};
+const HandleSet = (state, action) => {
+    const entity = state.raw(action.entityId);
+    entity[action.component] = action.data;
+    state.set(action.entityId, entity);
+    state.fireComponent(action.entityId, action.component);
+};
+class State {
+    constructor(systems) {
+        this.actions = new Map();
+        this.nextActions = new Map();
+        this.map = new Map();
+        this.components = {};
+        this.clock = Date.now();
+        this.systems = systems;
+        Object.keys(this.systems).forEach(sysKey => {
+            const system = systems[sysKey];
+            Object.keys(system.components).forEach(component => {
+                this.components[component] = this.components[component] || [];
+                this.components[component].push(system);
+            });
+            system.start(this);
+        });
+        this.tick = this.tick.bind(this);
+        this.tick();
+    }
+    dispatch(action, next = false) {
+        const actionMap = next ? this.nextActions : this.actions;
+        let actions;
+        if (!actionMap.has(action.type)) {
+            actions = [];
+        }
+        else {
+            actions = actionMap.get(action.type);
+        }
+        if (action.type === 'SET' && !next) {
+            HandleSet(this, action);
+        }
+        actions.push(action);
+        actionMap.set(action.type, actions);
+    }
+    /* LIFE CYCLE METHODS */
+    get(key) {
+        return this.expandEntity(this.map.get(key));
+    }
+    // Make an entity including its templates
+    raw(key) {
+        return this.map.get(key);
+    }
+    // Set an entities data
+    set(key, entity) {
+        entity.id = key;
+        this.map.set(entity.id, entity);
+    }
+    // Load and upgrade entities
+    async load(key, entity) {
+        // ensure
+        entity.id = key;
+        this.map.set(entity.id, entity);
+        const exEntity = await this.get(entity.id);
+        if (exEntity.has && Object.keys(exEntity.has).length > 0) {
+            Object.keys(exEntity.has).forEach(hasKey => {
+                // ensure key set
+                this.set(`${key}.${hasKey}`, exEntity.has[hasKey]);
+            });
+        }
+        // should only subscribe if is changes
+        if (entity.is) {
+            asset_1.Asset.on(entity.is, async () => {
+                this.fire(key);
+            });
+        }
+        this.fire(key);
+        return exEntity;
+    }
+    delete(key) {
+        if (typeof key === 'object') {
+            key = key.id;
+        }
+        const data = this.raw(key);
+        if (data && data.has && Object.keys(data.has).length > 0) {
+            Object.keys(data.has).forEach(hasKey => this.delete(`${key}.${hasKey}`));
+        }
+        const ret = this.map.delete(key);
+        this.fire(key, true);
+        return ret;
+    }
+    toJSON() {
+        const result = [];
+        this.map.forEach((e, k) => {
+            result.push([k, e]);
+        });
+        return result;
+    }
+    async fireComponent(entityId, component) {
+        const val = await this.get(entityId);
+        Object.keys(this.systems).forEach(sysKey => {
+            const system = this.systems[sysKey];
+            const hasEntity = system.has(val);
+            const hasComponent = system.components[component] !== undefined;
+            if (hasEntity && hasComponent) {
+                system.update(val, component);
+            }
+        });
+    }
+    // Tick systems
+    tick() {
+        requestAnimationFrame(this.tick);
+        const now = Date.now();
+        const delta = (now - this.clock) * 0.001;
+        this.clock = now;
+        Object.keys(this.systems).forEach(sysKey => {
+            const system = this.systems[sysKey];
+            system.tick(delta);
+        });
+        // clear old actions, use next actions
+        this.actions.clear();
+        const flipAction = this.actions;
+        this.actions = this.nextActions;
+        this.nextActions = flipAction;
+        if (this.actions.has('SET')) {
+            const setActions = this.actions.get('SET');
+            setActions.forEach(HandleSet.bind(null, this));
+        }
+    }
+    // Inform systems about entities with components they have interest in
+    async fire(key, deleted = false) {
+        const val = deleted ? undefined : await this.get(key);
+        // don't do this in prod
+        const entity = Object.freeze(Object.assign({}, val));
+        Object.keys(this.systems).forEach(sysKey => {
+            const system = this.systems[sysKey];
+            const hasEntity = system.has(val);
+            if (hasEntity && deleted) {
+                return system.remove(val);
+            }
+            // delta changes would help this
+            const hasComponent = Object.keys(system.components).some(component => {
+                return val[component] !== undefined;
+            });
+            if (hasComponent && !hasEntity) {
+                return system.add(entity);
+            }
+            if (hasComponent && hasEntity) {
+                // HARD RESET
+                system.remove(entity);
+                system.add(entity);
+                return;
+            }
+            if (!hasComponent && hasEntity) {
+                return system.remove(entity);
+            }
+        });
+    }
+    // Probably needs to be cached so we don't do this all the time
+    expandEntity(e, expand = false) {
+        return new Promise(async (resolve, reject) => {
+            if (!e)
+                reject(e);
+            const data = { has: {} };
+            if (e.is) {
+                // Get handles resolving is's
+                Object.assign(data, await asset_1.Asset.get(e.is), { is: undefined });
+            }
+            Object.assign(data, e, {
+                has: Object.assign(data.has, e.has)
+            });
+            resolve(data);
+        });
+    }
+}
+exports.State = State;
+
+
+/***/ }),
+/* 3 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
 class System {
     constructor() {
         this.components = {};
         this.entities = [];
     }
-    created() { }
-    destroyed() { }
+    created() {
+        // no-op
+    }
+    destroyed() {
+        // no-op
+    }
     start(state) {
         this.state = state;
         this.created();
@@ -218,8 +414,11 @@ class System {
     stop() {
         // no-op
     }
-    update(entity) {
-        // no-op
+    update(entity, component) {
+        const updateFn = this[`update_${component}`];
+        if (updateFn) {
+            updateFn.call(this, entity);
+        }
     }
     add(entity) {
         this.entities.push(entity.id);
@@ -238,13 +437,14 @@ exports.System = System;
 
 
 /***/ }),
-/* 3 */
+/* 4 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const system_1 = __webpack_require__(2);
+const system_1 = __webpack_require__(3);
+const state_1 = __webpack_require__(2);
 const input_1 = __webpack_require__(11);
 const THREE = __webpack_require__(1);
 const defaults = {
@@ -272,18 +472,22 @@ class Controller extends system_1.System {
     add(entity) {
         super.add(entity);
         if (entity.controller)
-            this.controllers[entity.id] = entity;
+            this.update_controller(entity);
         if (entity.camera) {
-            entity.camera.position = entity.camera.position || [0, 0, 0];
-            entity.camera.rotation = entity.camera.rotation || [0, 0, 0];
-            this.camera = entity;
+            if (!entity.camera.position || !entity.camera.rotation) {
+                this.state.dispatch(state_1.DoSet(entity.id, 'camera', Object.assign({
+                    position: [0, 0, 0],
+                    rotation: [0, 0, 0]
+                }, entity.camera)));
+            }
+            this.update_camera(entity);
         }
-        // TODO: Use our redux patternz
-        // TODO: Oh god please schema come soon
-        if (!entity.position || !entity.rotation) {
-            entity.position = entity.position || [0, 0, 0];
-            entity.rotation = entity.rotation || [0, 0, 0];
-            this.state.set(entity.id, entity);
+        // Require position and rotation set
+        if (!entity.position) {
+            this.state.dispatch(state_1.DoSet(entity.id, 'position', [0, 0, 0]));
+        }
+        if (!entity.rotation) {
+            this.state.dispatch(state_1.DoSet(entity.id, 'rotation', [0, 0, 0]));
         }
     }
     remove(entity) {
@@ -293,11 +497,11 @@ class Controller extends system_1.System {
         if (entity.camera)
             delete this.camera;
     }
-    update(entity) {
-        if (entity.controller)
-            this.controllers[entity.id] = entity;
-        if (entity.camera)
-            this.camera = entity;
+    update_camera(entity) {
+        this.camera = entity;
+    }
+    update_controller(entity) {
+        this.controllers[entity.id] = entity;
     }
     tick(delta) {
         this.cooldown -= delta;
@@ -309,18 +513,20 @@ class Controller extends system_1.System {
             const forward = (keys.w && -1) || (keys.s && 1) || 0;
             const turn = (keys.a && 1) || (keys.d && -1) || 0;
             const up = (keys.x && -1) || (keys.c && 1) || 0;
-            t3d.position.fromArray(entity.position);
+            const pos = entity.position || [0, 0, 0];
+            t3d.position.fromArray(pos);
             t3d.rotation.fromArray((entity.rotation || [0, 0, 0]).map(THREE.Math.degToRad));
             t3d.rotateY(turn * delta * controls.turnSpeed);
             t3d.translateZ(forward * delta * controls.forwardSpeed);
             t3d.translateY(up * delta * controls.forwardSpeed);
-            entity.body.velocity = t3d.position.toArray().map((n, i) => (n - entity.position[i]) * 100);
-            entity.rotation = t3d.rotation.toArray().slice(0, 3).map(THREE.Math.radToDeg);
+            const velocity = t3d.position.toArray().map((n, i) => (n - pos[i]) * 100);
+            const rotation = t3d.rotation.toArray().slice(0, 3).map(THREE.Math.radToDeg);
             if (keys.space && this.cooldown < 0) {
-                entity.body.velocity[1] = 100;
+                velocity[1] = 100;
                 this.cooldown = 1;
             }
-            this.state.set(entity.id, entity);
+            this.state.dispatch(state_1.DoSet(entity.id, 'rotation', rotation));
+            this.state.dispatch(state_1.DoSet(entity.id, 'body', Object.assign({}, entity.body, { velocity })));
             if (this.camera) {
                 const axis = new THREE.Vector3().fromArray(controls.cameraLookAt);
                 const camera = this.camera.camera;
@@ -329,9 +535,11 @@ class Controller extends system_1.System {
                 t3d.position.fromArray(camera.position);
                 t3d.rotation.fromArray(camera.rotation.map(THREE.Math.degToRad));
                 t3d.position.lerp(camPosition, controls.cameraLerp);
-                camera.target = dstPosition.toArray();
-                camera.position = t3d.position.toArray();
-                this.state.set(this.camera.id, this.camera);
+                const newCamera = Object.assign({}, camera, {
+                    target: dstPosition.toArray(),
+                    position: t3d.position.toArray()
+                });
+                this.state.dispatch(state_1.DoSet(this.camera.id, 'camera', newCamera));
             }
         });
     }
@@ -342,16 +550,15 @@ exports.Controller = Controller;
 
 
 /***/ }),
-/* 4 */
+/* 5 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const system_1 = __webpack_require__(2);
+const system_1 = __webpack_require__(3);
 const THREE = __webpack_require__(1);
 const vox_mesh_1 = __webpack_require__(14);
-const gravity = -9.8;
 const throttle = (type, name, obj) => {
     obj = obj || window;
     let running = false;
@@ -408,13 +615,9 @@ class WebGL extends system_1.System {
         this.handleResize();
         document.body.appendChild(this.renderer.domElement);
     }
-    update(entity) {
+    update(entity, component) {
         const o3d = this.updateO3D(entity);
-        if (entity.body) {
-            const body = this.bodies[entity.id];
-            body.update();
-            body.mass = entity.body.mass;
-        }
+        super.update(entity, component);
     }
     add(entity) {
         super.add(entity);
@@ -512,165 +715,14 @@ exports.WebGL = WebGL;
 
 
 /***/ }),
-/* 5 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const asset_1 = __webpack_require__(0);
-// should be smart enough to do on('key.whatever')
-// and wildcards
-// should autohandle is updates
-// should not handle has updates
-// should handle reducers/have a set of reducers
-class State {
-    constructor(systems) {
-        this.handlers = {};
-        this.map = new Map();
-        this.components = {};
-        this.clock = Date.now();
-        this.systems = systems;
-        Object.keys(this.systems).forEach(sysKey => {
-            const system = systems[sysKey];
-            Object.keys(system.components).forEach(component => {
-                this.components[component] = this.components[component] || [];
-                this.components[component].push(system);
-            });
-            system.start(this);
-        });
-        this.tick = this.tick.bind(this);
-        this.tick();
-    }
-    off(key, fn) {
-        const handlers = this.handlers[key] = this.handlers[key] || [];
-        const idx = handlers.indexOf(fn);
-        if (idx === -1)
-            return false;
-        handlers.splice(idx, 1);
-        return true;
-    }
-    // needs to handle the IS chain
-    on(key, fn) {
-        const handlers = this.handlers[key] = this.handlers[key] || [];
-        handlers.push(fn);
-    }
-    async watch(key, fn) {
-        this.on(key, fn);
-        fn(await this.get(key));
-    }
-    get(key) {
-        return this.expandEntity(this.map.get(key));
-    }
-    // Make an entity including its templates
-    raw(key) {
-        return this.map.get(key);
-    }
-    async set(key, entity) {
-        // ensure
-        entity.id = key;
-        this.map.set(entity.id, entity);
-        const exEntity = await this.get(entity.id);
-        if (exEntity.has && Object.keys(exEntity.has).length > 0) {
-            Object.keys(exEntity.has).forEach(hasKey => {
-                // ensure key set
-                this.set(`${key}.${hasKey}`, exEntity.has[hasKey]);
-            });
-        }
-        if (entity.is) {
-            asset_1.Asset.on(entity.is, async () => {
-                this.fire(key);
-            });
-        }
-        this.fire(key);
-        return exEntity;
-    }
-    delete(key) {
-        if (typeof key === 'object') {
-            key = key.id;
-        }
-        const data = this.raw(key);
-        if (data && data.has && Object.keys(data.has).length > 0) {
-            Object.keys(data.has).forEach(hasKey => this.delete(`${key}.${hasKey}`));
-        }
-        const ret = this.map.delete(key);
-        this.fire(key, true);
-        delete this.handlers[key];
-        return ret;
-    }
-    toJSON() {
-        const result = [];
-        this.map.forEach((e, k) => {
-            result.push([k, e]);
-        });
-        return result;
-    }
-    tick() {
-        requestAnimationFrame(this.tick);
-        const now = Date.now();
-        const delta = (now - this.clock) * 0.001;
-        this.clock = now;
-        Object.keys(this.systems).forEach(sysKey => {
-            const system = this.systems[sysKey];
-            system.tick(delta);
-        });
-    }
-    async fire(key, deleted = false) {
-        const handlers = this.handlers[key] || [];
-        const val = deleted ? undefined : await this.get(key);
-        handlers.forEach(fn => fn(val));
-        // we fire whenever shit changes...
-        // good time to check to see if systems need updated
-        // man do we need deltas
-        Object.keys(this.systems).forEach(sysKey => {
-            const system = this.systems[sysKey];
-            const hasEntity = system.has(val);
-            if (hasEntity && deleted) {
-                return system.remove(val);
-            }
-            // delta changes would help this
-            const hasComponent = Object.keys(system.components).some(component => {
-                return val[component] !== undefined;
-            });
-            if (hasComponent && !hasEntity) {
-                return system.add(val);
-            }
-            if (hasComponent && hasEntity) {
-                return system.update(val);
-            }
-            if (!hasComponent && hasEntity) {
-                return system.remove(val);
-            }
-        });
-    }
-    // Probably needs to be cached so we don't do this all the time
-    expandEntity(e, expand = false) {
-        return new Promise(async (resolve, reject) => {
-            if (!e)
-                reject(e);
-            const data = { has: {} };
-            if (e.is) {
-                // Get handles resolving is's
-                Object.assign(data, await asset_1.Asset.get(e.is), { is: undefined });
-            }
-            Object.assign(data, e, {
-                has: Object.assign(data.has, e.has)
-            });
-            resolve(data);
-        });
-    }
-}
-exports.State = State;
-
-
-/***/ }),
 /* 6 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const system_1 = __webpack_require__(2);
+const system_1 = __webpack_require__(3);
+const state_1 = __webpack_require__(2);
 const OIMO = __webpack_require__(18);
 const defaults = {
     mass: 1,
@@ -712,7 +764,6 @@ class Physics extends system_1.System {
             belongsTo: 1,
             collidesWith: 0xffffffff // The bits of the collision groups with which the shape collides.
         });
-        console.log(body);
     }
     remove(entity) {
         super.remove(entity);
@@ -720,21 +771,16 @@ class Physics extends system_1.System {
         delete this.bodies[entity.id];
         delete this.entityCache[entity.id];
     }
-    update(entity) {
-        this.entityCache[entity.id] = entity;
+    update_body(entity) {
         const body = this.bodies[entity.id];
-        /*if(entity.position) {
-            const pos = entity.position;
-            body.pos.set(pos[0], pos[1], pos[2]);
-        }*/
         if (entity.body.velocity) {
             const vel = entity.body.velocity;
             body.linearVelocity.set(vel[0], vel[1], vel[2]);
         }
-        /*
-        if(entity.body.mass !== undefined) {
-            body.mass = entity.body.mass;
-        }*/
+    }
+    update(entity, component) {
+        this.entityCache[entity.id] = entity;
+        super.update(entity, component);
     }
     tick(delta) {
         this.world.step();
@@ -742,8 +788,7 @@ class Physics extends system_1.System {
             const entity = this.entityCache[key];
             const body = this.bodies[key];
             const pos = body.getPosition();
-            entity.position = [pos.x, pos.y, pos.z];
-            this.state.set(entity.id, entity);
+            this.state.dispatch(state_1.DoSet(entity.id, 'position', [pos.x, pos.y, pos.z]));
         });
     }
 }
@@ -1087,10 +1132,10 @@ exports.Input = {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const state_1 = __webpack_require__(5);
+const state_1 = __webpack_require__(2);
 const oimo_physics_1 = __webpack_require__(6);
-const webgl_1 = __webpack_require__(4);
-const controller_1 = __webpack_require__(3);
+const webgl_1 = __webpack_require__(5);
+const controller_1 = __webpack_require__(4);
 const asset_1 = __webpack_require__(0);
 // State starts ticking ASAP
 const state = new state_1.State({
@@ -1103,7 +1148,7 @@ asset_1.Asset.watch('content/scene/default.toml', (sceneData) => {
     // ignore top level components for now
     if (sceneData.has) {
         Object.keys(sceneData.has).forEach(key => {
-            state.set(key, sceneData.has[key]);
+            state.load(key, sceneData.has[key]);
         });
     }
 });

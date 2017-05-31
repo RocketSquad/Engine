@@ -1,5 +1,5 @@
 import {ISystem, System} from 'common/engine/system';
-import {IEntity, State} from 'common/engine/state';
+import {IEntity, State, DoSet} from 'common/engine/state';
 const OIMO = require('oimo');
 
 interface ITransformComponent {
@@ -57,8 +57,6 @@ export class Physics extends System {
             belongsTo: 1, // The bits of the collision groups to which the shape belongs.
             collidesWith: 0xffffffff // The bits of the collision groups with which the shape collides.
         });
-
-        console.log(body);
     }
 
     remove(entity: IEntity) {
@@ -68,23 +66,18 @@ export class Physics extends System {
         delete this.entityCache[entity.id];
     }
 
-    update(entity: IEntity) {
-        this.entityCache[entity.id] = entity;
+    update_body(entity: IEntity) {
         const body = this.bodies[entity.id];
 
-        /*if(entity.position) {
-            const pos = entity.position;
-            body.pos.set(pos[0], pos[1], pos[2]);
-        }*/
         if(entity.body.velocity) {
             const vel = entity.body.velocity;
             body.linearVelocity.set(vel[0], vel[1], vel[2]);
         }
-        /*
-        if(entity.body.mass !== undefined) {
-            body.mass = entity.body.mass;
-        }*/
+    }
 
+    update(entity: IEntity, component: string) {
+        this.entityCache[entity.id] = entity;
+        super.update(entity, component);
     }
 
     tick(delta) {
@@ -95,8 +88,8 @@ export class Physics extends System {
             const body = this.bodies[key];
             const pos = body.getPosition();
 
-            entity.position = [pos.x, pos.y, pos.z];
-            this.state.set(entity.id, entity);
+            this.state.dispatch(DoSet(entity.id, 'position', [pos.x, pos.y, pos.z]));
         });
     }
 }
+ 
