@@ -77,7 +77,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const vox_1 = __webpack_require__(16);
 const socket_1 = __webpack_require__(15);
 const b64 = __webpack_require__(17);
-const toml = __webpack_require__(21);
+const toml = __webpack_require__(24);
 const ASSETS = {};
 const Memoize = (file, action) => ASSETS[file] ? ASSETS[file] : Set(file, action(file));
 // oh baby alignment
@@ -229,6 +229,7 @@ class State {
         this.map = new Map();
         this.components = {};
         this.clock = Date.now();
+        this.running = true;
         this.systems = systems;
         Object.keys(this.systems).forEach(sysKey => {
             const system = systems[sysKey];
@@ -251,7 +252,8 @@ class State {
             actions = actionMap.get(action.type);
         }
         if (action.type === 'SET' && !next) {
-            HandleSet(this, action);
+            const set = action;
+            HandleSet(this, set);
         }
         actions.push(action);
         actionMap.set(action.type, actions);
@@ -268,6 +270,24 @@ class State {
     set(key, entity) {
         entity.id = key;
         this.map.set(entity.id, entity);
+    }
+    clear() {
+        this.stop();
+        this.actions.clear();
+        this.nextActions.clear();
+        const promises = [];
+        this.map.forEach((entity, key) => {
+            promises.push(this.delete(key));
+        });
+        return Promise.all(promises).then(() => {
+            this.start();
+        });
+    }
+    start() {
+        this.running = true;
+    }
+    stop() {
+        this.running = false;
     }
     // Load and upgrade entities
     async load(key, entity) {
@@ -290,17 +310,15 @@ class State {
         this.fire(key);
         return exEntity;
     }
-    delete(key) {
-        if (typeof key === 'object') {
-            key = key.id;
-        }
+    delete(entity) {
+        const key = typeof entity === 'object' ? entity.id : entity;
         const data = this.raw(key);
         if (data && data.has && Object.keys(data.has).length > 0) {
             Object.keys(data.has).forEach(hasKey => this.delete(`${key}.${hasKey}`));
         }
-        const ret = this.map.delete(key);
-        this.fire(key, true);
-        return ret;
+        return this.fire(key, true).then(() => {
+            this.map.delete(key);
+        });
     }
     toJSON() {
         const result = [];
@@ -310,13 +328,16 @@ class State {
         return result;
     }
     async fireComponent(entityId, component) {
-        const val = await this.get(entityId);
+        const entity = await this.get(entityId);
         Object.keys(this.systems).forEach(sysKey => {
             const system = this.systems[sysKey];
-            const hasEntity = system.has(val);
+            const hasEntity = system.has(entity);
             const hasComponent = system.components[component] !== undefined;
+            if (hasComponent && !hasEntity) {
+                return system.add(entity);
+            }
             if (hasEntity && hasComponent) {
-                system.update(val, component);
+                return system.update(entity, component);
             }
         });
     }
@@ -326,6 +347,8 @@ class State {
         const now = Date.now();
         const delta = (now - this.clock) * 0.001;
         this.clock = now;
+        if (!this.running)
+            return;
         Object.keys(this.systems).forEach(sysKey => {
             const system = this.systems[sysKey];
             system.tick(delta);
@@ -342,12 +365,12 @@ class State {
     }
     // Inform systems about entities with components they have interest in
     async fire(key, deleted = false) {
-        const val = deleted ? undefined : await this.get(key);
+        const val = await this.get(key);
         // don't do this in prod
-        const entity = Object.freeze(Object.assign({}, val));
+        const entity = Object.assign({}, val);
         Object.keys(this.systems).forEach(sysKey => {
             const system = this.systems[sysKey];
-            const hasEntity = system.has(val);
+            const hasEntity = system.has(key);
             if (hasEntity && deleted) {
                 return system.remove(val);
             }
@@ -427,10 +450,15 @@ class System {
         this.entities.splice(this.entities.indexOf(entity.id), 1);
     }
     has(entity) {
-        return this.entities.indexOf(entity.id) !== -1;
+        const key = typeof entity === 'object' ? entity.id : entity;
+        return this.entities.indexOf(key) !== -1;
     }
     tick(delta) {
         // no-op
+    }
+    dispatch(action, next = false) {
+        action.from = this.constructor.name;
+        this.state.dispatch(action, next);
     }
 }
 exports.System = System;
@@ -447,6 +475,7 @@ const system_1 = __webpack_require__(3);
 const state_1 = __webpack_require__(2);
 const input_1 = __webpack_require__(11);
 const THREE = __webpack_require__(1);
+const equals = __webpack_require__(18);
 const defaults = {
     turnSpeed: 1,
     forwardSpeed: 1,
@@ -463,7 +492,9 @@ class Controller extends system_1.System {
         super(...arguments);
         this.components = {
             controller: 'IControllerComponent',
-            camera: 'ICameraComponent'
+            camera: 'ICameraComponent',
+            position: 'IPosition',
+            rotation: 'IRotation'
         };
         this.cooldown = 0;
         this.controllers = {};
@@ -472,10 +503,10 @@ class Controller extends system_1.System {
     add(entity) {
         super.add(entity);
         if (entity.controller)
-            this.update_controller(entity);
+            this.update(entity, 'controller');
         if (entity.camera) {
             if (!entity.camera.position || !entity.camera.rotation) {
-                this.state.dispatch(state_1.DoSet(entity.id, 'camera', Object.assign({
+                this.dispatch(state_1.DoSet(entity.id, 'camera', Object.assign({
                     position: [0, 0, 0],
                     rotation: [0, 0, 0]
                 }, entity.camera)));
@@ -484,10 +515,10 @@ class Controller extends system_1.System {
         }
         // Require position and rotation set
         if (!entity.position) {
-            this.state.dispatch(state_1.DoSet(entity.id, 'position', [0, 0, 0]));
+            this.dispatch(state_1.DoSet(entity.id, 'position', [0, 0, 0]));
         }
         if (!entity.rotation) {
-            this.state.dispatch(state_1.DoSet(entity.id, 'rotation', [0, 0, 0]));
+            this.dispatch(state_1.DoSet(entity.id, 'rotation', [0, 0, 0]));
         }
     }
     remove(entity) {
@@ -500,8 +531,11 @@ class Controller extends system_1.System {
     update_camera(entity) {
         this.camera = entity;
     }
-    update_controller(entity) {
-        this.controllers[entity.id] = entity;
+    update(entity, component) {
+        if (entity.controller) {
+            this.controllers[entity.id] = entity;
+        }
+        super.update(entity, component);
     }
     tick(delta) {
         this.cooldown -= delta;
@@ -525,8 +559,11 @@ class Controller extends system_1.System {
                 velocity[1] = 100;
                 this.cooldown = 1;
             }
-            this.state.dispatch(state_1.DoSet(entity.id, 'rotation', rotation));
-            this.state.dispatch(state_1.DoSet(entity.id, 'body', Object.assign({}, entity.body, { velocity })));
+            if (!equals(rotation, entity.rotation)) {
+                this.dispatch(state_1.DoSet(entity.id, 'rotation', rotation));
+            }
+            if (!equals(velocity, entity.body.velocity))
+                this.dispatch(state_1.DoSet(entity.id, 'body', Object.assign({}, entity.body, { velocity })));
             if (this.camera) {
                 const axis = new THREE.Vector3().fromArray(controls.cameraLookAt);
                 const camera = this.camera.camera;
@@ -539,7 +576,8 @@ class Controller extends system_1.System {
                     target: dstPosition.toArray(),
                     position: t3d.position.toArray()
                 });
-                this.state.dispatch(state_1.DoSet(this.camera.id, 'camera', newCamera));
+                if (!equals(newCamera, camera))
+                    this.dispatch(state_1.DoSet(this.camera.id, 'camera', newCamera));
             }
         });
     }
@@ -597,6 +635,8 @@ class WebGL extends system_1.System {
         super(...arguments);
         this.components = {
             directional: 'IDirectionalLightComponent',
+            rotation: 'IRotation',
+            position: 'IPosition',
             ambient: 'ILightComponent',
             vox: 'IVoxComponent',
             camera: 'ICameraComponent'
@@ -616,16 +656,12 @@ class WebGL extends system_1.System {
         document.body.appendChild(this.renderer.domElement);
     }
     update(entity, component) {
-        const o3d = this.updateO3D(entity);
+        this.updateO3D(entity);
         super.update(entity, component);
     }
     add(entity) {
         super.add(entity);
-        const o3d = this.updateO3D(entity, true);
-        if (entity.body) {
-            const body = this.bodies[entity.id] = new THREE.BoundingBoxHelper(o3d);
-            body.mass = entity.body.mass;
-        }
+        this.updateO3D(entity, true);
     }
     remove(entity) {
         super.remove(entity);
@@ -723,7 +759,8 @@ exports.WebGL = WebGL;
 Object.defineProperty(exports, "__esModule", { value: true });
 const system_1 = __webpack_require__(3);
 const state_1 = __webpack_require__(2);
-const OIMO = __webpack_require__(18);
+const OIMO = __webpack_require__(21);
+const equals = __webpack_require__(18);
 const defaults = {
     mass: 1,
     size: [1, 1, 1]
@@ -742,7 +779,8 @@ class Physics extends system_1.System {
             worldscale: 1,
             random: true,
             info: false,
-            gravity: [0, -98.0, 0]
+            gravity: [0, 0, 0]
+            // gravity: [0,-98.0,0]
         });
         this.entityCache = {};
     }
@@ -787,8 +825,10 @@ class Physics extends system_1.System {
         Object.keys(this.bodies).forEach(async (key) => {
             const entity = this.entityCache[key];
             const body = this.bodies[key];
-            const pos = body.getPosition();
-            this.state.dispatch(state_1.DoSet(entity.id, 'position', [pos.x, pos.y, pos.z]));
+            const { x, y, z } = body.getPosition();
+            const pos = [x, y, z];
+            if (!equals(entity.position, pos))
+                this.dispatch(state_1.DoSet(entity.id, 'position', pos));
         });
     }
 }
@@ -1144,9 +1184,10 @@ const state = new state_1.State({
     webgl: new webgl_1.WebGL()
 });
 // Inform state about it
-asset_1.Asset.watch('content/scene/default.toml', (sceneData) => {
+asset_1.Asset.watch('content/scene/default.toml', async (sceneData) => {
     // ignore top level components for now
     if (sceneData.has) {
+        await state.clear();
         Object.keys(sceneData.has).forEach(key => {
             state.load(key, sceneData.has[key]);
         });
@@ -1535,7 +1576,7 @@ const md5 = MD5_hexhash;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const path = __webpack_require__(19);
+const path = __webpack_require__(22);
 const THREE = __webpack_require__(1);
 const vox_mesh_builder_1 = __webpack_require__(13);
 const asset_1 = __webpack_require__(0);
@@ -2316,6 +2357,147 @@ function fromByteArray (uint8) {
 
 /***/ }),
 /* 18 */
+/***/ (function(module, exports, __webpack_require__) {
+
+var pSlice = Array.prototype.slice;
+var objectKeys = __webpack_require__(20);
+var isArguments = __webpack_require__(19);
+
+var deepEqual = module.exports = function (actual, expected, opts) {
+  if (!opts) opts = {};
+  // 7.1. All identical values are equivalent, as determined by ===.
+  if (actual === expected) {
+    return true;
+
+  } else if (actual instanceof Date && expected instanceof Date) {
+    return actual.getTime() === expected.getTime();
+
+  // 7.3. Other pairs that do not both pass typeof value == 'object',
+  // equivalence is determined by ==.
+  } else if (!actual || !expected || typeof actual != 'object' && typeof expected != 'object') {
+    return opts.strict ? actual === expected : actual == expected;
+
+  // 7.4. For all other Object pairs, including Array objects, equivalence is
+  // determined by having the same number of owned properties (as verified
+  // with Object.prototype.hasOwnProperty.call), the same set of keys
+  // (although not necessarily the same order), equivalent values for every
+  // corresponding key, and an identical 'prototype' property. Note: this
+  // accounts for both named and indexed properties on Arrays.
+  } else {
+    return objEquiv(actual, expected, opts);
+  }
+}
+
+function isUndefinedOrNull(value) {
+  return value === null || value === undefined;
+}
+
+function isBuffer (x) {
+  if (!x || typeof x !== 'object' || typeof x.length !== 'number') return false;
+  if (typeof x.copy !== 'function' || typeof x.slice !== 'function') {
+    return false;
+  }
+  if (x.length > 0 && typeof x[0] !== 'number') return false;
+  return true;
+}
+
+function objEquiv(a, b, opts) {
+  var i, key;
+  if (isUndefinedOrNull(a) || isUndefinedOrNull(b))
+    return false;
+  // an identical 'prototype' property.
+  if (a.prototype !== b.prototype) return false;
+  //~~~I've managed to break Object.keys through screwy arguments passing.
+  //   Converting to array solves the problem.
+  if (isArguments(a)) {
+    if (!isArguments(b)) {
+      return false;
+    }
+    a = pSlice.call(a);
+    b = pSlice.call(b);
+    return deepEqual(a, b, opts);
+  }
+  if (isBuffer(a)) {
+    if (!isBuffer(b)) {
+      return false;
+    }
+    if (a.length !== b.length) return false;
+    for (i = 0; i < a.length; i++) {
+      if (a[i] !== b[i]) return false;
+    }
+    return true;
+  }
+  try {
+    var ka = objectKeys(a),
+        kb = objectKeys(b);
+  } catch (e) {//happens when one is a string literal and the other isn't
+    return false;
+  }
+  // having the same number of owned properties (keys incorporates
+  // hasOwnProperty)
+  if (ka.length != kb.length)
+    return false;
+  //the same set of keys (although not necessarily the same order),
+  ka.sort();
+  kb.sort();
+  //~~~cheap key test
+  for (i = ka.length - 1; i >= 0; i--) {
+    if (ka[i] != kb[i])
+      return false;
+  }
+  //equivalent values for every corresponding key, and
+  //~~~possibly expensive deep test
+  for (i = ka.length - 1; i >= 0; i--) {
+    key = ka[i];
+    if (!deepEqual(a[key], b[key], opts)) return false;
+  }
+  return typeof a === typeof b;
+}
+
+
+/***/ }),
+/* 19 */
+/***/ (function(module, exports) {
+
+var supportsArgumentsClass = (function(){
+  return Object.prototype.toString.call(arguments)
+})() == '[object Arguments]';
+
+exports = module.exports = supportsArgumentsClass ? supported : unsupported;
+
+exports.supported = supported;
+function supported(object) {
+  return Object.prototype.toString.call(object) == '[object Arguments]';
+};
+
+exports.unsupported = unsupported;
+function unsupported(object){
+  return object &&
+    typeof object == 'object' &&
+    typeof object.length == 'number' &&
+    Object.prototype.hasOwnProperty.call(object, 'callee') &&
+    !Object.prototype.propertyIsEnumerable.call(object, 'callee') ||
+    false;
+};
+
+
+/***/ }),
+/* 20 */
+/***/ (function(module, exports) {
+
+exports = module.exports = typeof Object.keys === 'function'
+  ? Object.keys : shim;
+
+exports.shim = shim;
+function shim (obj) {
+  var keys = [];
+  for (var key in obj) keys.push(key);
+  return keys;
+}
+
+
+/***/ }),
+/* 21 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -14631,7 +14813,7 @@ Object.assign( World.prototype, {
 
 
 /***/ }),
-/* 19 */
+/* 22 */
 /***/ (function(module, exports, __webpack_require__) {
 
 /* WEBPACK VAR INJECTION */(function(process) {// Copyright Joyent, Inc. and other Node contributors.
@@ -14859,10 +15041,10 @@ var substr = 'ab'.substr(-1) === 'b'
     }
 ;
 
-/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(20)))
+/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(23)))
 
 /***/ }),
-/* 20 */
+/* 23 */
 /***/ (function(module, exports) {
 
 // shim for using process in browser
@@ -15052,11 +15234,11 @@ process.umask = function() { return 0; };
 
 
 /***/ }),
-/* 21 */
+/* 24 */
 /***/ (function(module, exports, __webpack_require__) {
 
-var parser = __webpack_require__(23);
-var compiler = __webpack_require__(22);
+var parser = __webpack_require__(26);
+var compiler = __webpack_require__(25);
 
 module.exports = {
   parse: function(input) {
@@ -15067,7 +15249,7 @@ module.exports = {
 
 
 /***/ }),
-/* 22 */
+/* 25 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -15271,7 +15453,7 @@ module.exports = {
 
 
 /***/ }),
-/* 23 */
+/* 26 */
 /***/ (function(module, exports) {
 
 module.exports = (function() {

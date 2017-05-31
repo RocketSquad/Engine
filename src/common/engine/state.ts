@@ -10,6 +10,7 @@ export interface IEntity {
 
 export interface IAction {
     type: string;
+    from?: string;
     [key: string]: any;
 }
 
@@ -48,6 +49,7 @@ export class State {
     private systems: {[key: string]: ISystem};
     private components: {[key: string]: ISystem[]} = {};
     private clock = Date.now();
+    public running = true;
 
     constructor(systems: {[key: string]: ISystem}) {
         this.systems = systems;
@@ -74,7 +76,8 @@ export class State {
         }
 
         if(action.type === 'SET' && !next) {
-            HandleSet(this, action as IActionSet);
+            const set = (action as IActionSet);
+            HandleSet(this, set);
         }
 
         actions.push(action);
@@ -95,6 +98,29 @@ export class State {
     set(key: string, entity: IEntity) {
         entity.id = key;
         this.map.set(entity.id, entity);
+    }
+
+    clear() {
+        this.stop();
+        this.actions.clear();
+        this.nextActions.clear();
+
+        const promises = [];
+        this.map.forEach((entity, key) => {
+            promises.push(this.delete(key));
+        });
+
+        return Promise.all(promises).then(() => {
+            this.start();
+        });
+    }
+
+    start() {
+        this.running = true;
+    }
+    
+    stop() {
+        this.running = false;
     }
 
     // Load and upgrade entities
@@ -123,20 +149,17 @@ export class State {
         return exEntity;
     }
 
-    delete(key: IEntity | string) {
-        if(typeof key === 'object') {
-            key = key.id;
-        }
+    delete(entity: IEntity | string) {
+        const key = typeof entity === 'object' ? entity.id : entity;
         const data = this.raw(key);
 
         if(data && data.has && Object.keys(data.has).length > 0) {
             Object.keys(data.has).forEach(hasKey => this.delete(`${key}.${hasKey}`));
         }
 
-        const ret = this.map.delete(key);
-
-        this.fire(key, true);
-        return ret;
+        return this.fire(key, true).then(() => {
+            this.map.delete(key);
+        });
     }
 
     toJSON() {
@@ -150,14 +173,18 @@ export class State {
     }
 
     public async fireComponent(entityId: string, component: string) {
-        const val = await this.get(entityId);
+        const entity = await this.get(entityId);
         Object.keys(this.systems).forEach(sysKey => {
             const system = this.systems[sysKey];
-            const hasEntity = system.has(val);
+            const hasEntity = system.has(entity);
             const hasComponent = system.components[component] !== undefined;
 
+            if(hasComponent && !hasEntity) {
+                return system.add(entity);
+            }
+
             if(hasEntity && hasComponent) {
-                system.update(val, component);
+                return system.update(entity, component);
             }
         });
     }
@@ -168,6 +195,7 @@ export class State {
         const now = Date.now();
         const delta = (now - this.clock) * 0.001;
         this.clock = now;
+        if(!this.running) return;
 
         Object.keys(this.systems).forEach(sysKey => {
             const system = this.systems[sysKey];
@@ -188,13 +216,13 @@ export class State {
 
     // Inform systems about entities with components they have interest in
     private async fire(key: string, deleted = false) {
-        const val = deleted ? undefined : await this.get(key);
+        const val = await this.get(key);
         // don't do this in prod
-        const entity = Object.freeze(Object.assign({}, val));
+        const entity = Object.assign({}, val);
 
         Object.keys(this.systems).forEach(sysKey => {
             const system = this.systems[sysKey];
-            const hasEntity = system.has(val);
+            const hasEntity = system.has(key);
 
             if(hasEntity && deleted) {
                 return system.remove(val);

@@ -1,6 +1,7 @@
 import {ISystem, System} from 'common/engine/system';
 import {IEntity, State, DoSet} from 'common/engine/state';
 const OIMO = require('oimo');
+const equals = require('deep-equal');
 
 interface ITransformComponent {
     size?: number | number[];
@@ -29,10 +30,11 @@ export class Physics extends System {
         timestep: 1/60,
         iterations: 8,
         broadphase: 2, // 1 brute force, 2 sweep and prune, 3 volume tree
-        worldscale: 1, // scale full world 
+        worldscale: 1, // scale full world
         random: true,  // randomize sample
         info: false,   // calculate statistic or not
-        gravity: [0,-98.0,0]
+        gravity: [0, 0, 0]
+        // gravity: [0,-98.0,0]
     });
 
     private entityCache: {[key: string]: IEntity} = {};
@@ -46,7 +48,7 @@ export class Physics extends System {
         const size = [].concat(entity.body.size || [1, 1, 1]);
 
         const body = this.bodies[entity.id] = this.world.add({
-            type: 'box', // type of shape : sphere, box, cylinder 
+            type: 'box', // type of shape : sphere, box, cylinder
             size, // size of shape
             pos, // start position in degree
             rot: [0,0,0], // start rotation in degree
@@ -86,10 +88,10 @@ export class Physics extends System {
         Object.keys(this.bodies).forEach(async key => {
             const entity = this.entityCache[key];
             const body = this.bodies[key];
-            const pos = body.getPosition();
-
-            this.state.dispatch(DoSet(entity.id, 'position', [pos.x, pos.y, pos.z]));
+            const {x, y, z} = body.getPosition();
+            const pos = [x, y, z];
+            if(!equals(entity.position, pos))
+                this.dispatch(DoSet(entity.id, 'position', pos));
         });
     }
 }
- 

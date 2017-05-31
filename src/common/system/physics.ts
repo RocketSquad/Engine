@@ -39,7 +39,6 @@ export class Physics extends System {
 
     add(entity: IEntity) {
         super.add(entity);
-        console.log('adding', entity);
         const pos = (entity.position || [0, 0, 0]);
         const mass = entity.body.mass !== undefined ? entity.body.mass : 1;
         const body = this.bodies[entity.id] = new CANNON.Body({

@@ -63,6 +63,8 @@ const TargetUpdate = (o3d, data) => {
 export class WebGL extends System {
     public components = {
         directional: 'IDirectionalLightComponent',
+        rotation: 'IRotation',
+        position: 'IPosition',
         ambient: 'ILightComponent',
         vox: 'IVoxComponent',
         camera: 'ICameraComponent'
@@ -82,19 +84,15 @@ export class WebGL extends System {
         this.handleResize();
         document.body.appendChild(this.renderer.domElement);
     }
- 
+
     update(entity: IEntity, component: string) {
-        const o3d = this.updateO3D(entity);
+        this.updateO3D(entity);
         super.update(entity, component);
     }
 
     add(entity: IEntity) {
         super.add(entity);
-        const o3d = this.updateO3D(entity, true);
-        if(entity.body) {
-            const body = this.bodies[entity.id] = new THREE.BoundingBoxHelper(o3d);
-            (body as any).mass = entity.body.mass;
-        }
+        this.updateO3D(entity, true);
     }
 
     remove(entity: IEntity) {

@@ -1,4 +1,4 @@
-import {IEntity, State} from './state';
+import {IEntity, State, IAction} from './state';
 
 export interface ISystem {
     components: {[key: string]: string};
@@ -9,7 +9,7 @@ export interface ISystem {
     add: (entity: IEntity) => void;
     remove: (entity: IEntity) => void;
     update: (entity: IEntity, component: string) => void;
-    has: (entity: IEntity) => boolean;
+    has: (entity: IEntity | string) => boolean;
     tick: (delta: number) => void;
 }
 
@@ -49,11 +49,17 @@ export class System implements ISystem {
         this.entities.splice(this.entities.indexOf(entity.id), 1);
     }
 
-    has(entity: IEntity) {
-        return this.entities.indexOf(entity.id) !== -1;
+    has(entity: IEntity | string) {
+        const key = typeof entity === 'object' ? entity.id : entity;
+        return this.entities.indexOf(key) !== -1;
     }
 
     tick(delta: number) {
         // no-op
+    }
+
+    dispatch(action: IAction, next = false) {
+        action.from = this.constructor.name;
+        this.state.dispatch(action, next);
     }
 }

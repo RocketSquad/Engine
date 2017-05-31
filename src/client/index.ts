@@ -12,9 +12,11 @@ const state = new State({
 });
 
 // Inform state about it
-Asset.watch('content/scene/default.toml', (sceneData: IEntity) => {
+Asset.watch('content/scene/default.toml', async (sceneData: IEntity) => {
     // ignore top level components for now
     if(sceneData.has) {
+        await state.clear();
+
         Object.keys(sceneData.has).forEach(key => {
             state.load(key, sceneData.has[key]);
         });

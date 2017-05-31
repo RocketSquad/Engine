@@ -2,6 +2,7 @@ import {ISystem, System} from 'common/engine/system';
 import {IEntity, State, DoSet} from 'common/engine/state';
 import {Input} from 'client/engine/input';
 import * as THREE from 'three';
+const equals = require('deep-equal');
 
 interface IControllerComponent {
     turnSpeed: number;
@@ -30,7 +31,9 @@ export class Controller extends System {
 
     public components = {
         controller: 'IControllerComponent',
-        camera: 'ICameraComponent'
+        camera: 'ICameraComponent',
+        position: 'IPosition',
+        rotation: 'IRotation'
     };
 
     private cooldown = 0;
@@ -41,11 +44,11 @@ export class Controller extends System {
     add(entity: IEntity) {
         super.add(entity);
         if(entity.controller)
-            this.update_controller(entity);
+            this.update(entity, 'controller');
 
         if(entity.camera) {
             if(!entity.camera.position || !entity.camera.rotation) {
-                this.state.dispatch(DoSet(entity.id, 'camera', Object.assign({
+                this.dispatch(DoSet(entity.id, 'camera', Object.assign({
                     position: [0, 0, 0],
                     rotation: [0, 0, 0]
                 }, entity.camera)));
@@ -56,11 +59,11 @@ export class Controller extends System {
 
         // Require position and rotation set
         if(!entity.position) {
-            this.state.dispatch(DoSet(entity.id, 'position', [0, 0, 0]));
+            this.dispatch(DoSet(entity.id, 'position', [0, 0, 0]));
         }
 
         if(!entity.rotation) {
-            this.state.dispatch(DoSet(entity.id, 'rotation', [0, 0, 0]));
+            this.dispatch(DoSet(entity.id, 'rotation', [0, 0, 0]));
         }
     }
 
@@ -76,8 +79,12 @@ export class Controller extends System {
         this.camera = entity;
     }
 
-    update_controller(entity) {
-        this.controllers[entity.id] = entity;
+    update(entity, component) {
+        if(entity.controller) {
+            this.controllers[entity.id] = entity;
+        }
+
+        super.update(entity, component);
     }
 
     tick(delta) {
@@ -111,8 +118,12 @@ export class Controller extends System {
                 this.cooldown = 1;
             }
 
-            this.state.dispatch(DoSet(entity.id, 'rotation', rotation));
-            this.state.dispatch(DoSet(entity.id, 'body', Object.assign({}, entity.body, {velocity})));
+            if(!equals(rotation, entity.rotation)) {
+                this.dispatch(DoSet(entity.id, 'rotation', rotation));
+            }
+
+            if(!equals(velocity, entity.body.velocity))
+                this.dispatch(DoSet(entity.id, 'body', Object.assign({}, entity.body, {velocity})));
 
             if(this.camera) {
                 const axis = new THREE.Vector3().fromArray(controls.cameraLookAt);
@@ -131,7 +142,8 @@ export class Controller extends System {
                     position: t3d.position.toArray()
                 });
 
-                this.state.dispatch(DoSet(this.camera.id, 'camera', newCamera));
+                if(!equals(newCamera, camera))
+                    this.dispatch(DoSet(this.camera.id, 'camera', newCamera));
             }
         });
     }
