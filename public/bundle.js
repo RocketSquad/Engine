@@ -63,7 +63,7 @@
 /******/ 	__webpack_require__.p = "";
 /******/
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = 12);
+/******/ 	return __webpack_require__(__webpack_require__.s = 13);
 /******/ })
 /************************************************************************/
 /******/ ([
@@ -74,9 +74,9 @@
 
 Object.defineProperty(exports, "__esModule", { value: true });
 // Load Vox/TOML files from a file
-const vox_1 = __webpack_require__(16);
-const socket_1 = __webpack_require__(15);
-const b64 = __webpack_require__(17);
+const vox_1 = __webpack_require__(17);
+const socket_1 = __webpack_require__(16);
+const b64 = __webpack_require__(18);
 const toml = __webpack_require__(24);
 const ASSETS = {};
 const Memoize = (file, action) => ASSETS[file] ? ASSETS[file] : Set(file, action(file));
@@ -468,14 +468,114 @@ exports.System = System;
 /* 4 */
 /***/ (function(module, exports, __webpack_require__) {
 
+var pSlice = Array.prototype.slice;
+var objectKeys = __webpack_require__(20);
+var isArguments = __webpack_require__(19);
+
+var deepEqual = module.exports = function (actual, expected, opts) {
+  if (!opts) opts = {};
+  // 7.1. All identical values are equivalent, as determined by ===.
+  if (actual === expected) {
+    return true;
+
+  } else if (actual instanceof Date && expected instanceof Date) {
+    return actual.getTime() === expected.getTime();
+
+  // 7.3. Other pairs that do not both pass typeof value == 'object',
+  // equivalence is determined by ==.
+  } else if (!actual || !expected || typeof actual != 'object' && typeof expected != 'object') {
+    return opts.strict ? actual === expected : actual == expected;
+
+  // 7.4. For all other Object pairs, including Array objects, equivalence is
+  // determined by having the same number of owned properties (as verified
+  // with Object.prototype.hasOwnProperty.call), the same set of keys
+  // (although not necessarily the same order), equivalent values for every
+  // corresponding key, and an identical 'prototype' property. Note: this
+  // accounts for both named and indexed properties on Arrays.
+  } else {
+    return objEquiv(actual, expected, opts);
+  }
+}
+
+function isUndefinedOrNull(value) {
+  return value === null || value === undefined;
+}
+
+function isBuffer (x) {
+  if (!x || typeof x !== 'object' || typeof x.length !== 'number') return false;
+  if (typeof x.copy !== 'function' || typeof x.slice !== 'function') {
+    return false;
+  }
+  if (x.length > 0 && typeof x[0] !== 'number') return false;
+  return true;
+}
+
+function objEquiv(a, b, opts) {
+  var i, key;
+  if (isUndefinedOrNull(a) || isUndefinedOrNull(b))
+    return false;
+  // an identical 'prototype' property.
+  if (a.prototype !== b.prototype) return false;
+  //~~~I've managed to break Object.keys through screwy arguments passing.
+  //   Converting to array solves the problem.
+  if (isArguments(a)) {
+    if (!isArguments(b)) {
+      return false;
+    }
+    a = pSlice.call(a);
+    b = pSlice.call(b);
+    return deepEqual(a, b, opts);
+  }
+  if (isBuffer(a)) {
+    if (!isBuffer(b)) {
+      return false;
+    }
+    if (a.length !== b.length) return false;
+    for (i = 0; i < a.length; i++) {
+      if (a[i] !== b[i]) return false;
+    }
+    return true;
+  }
+  try {
+    var ka = objectKeys(a),
+        kb = objectKeys(b);
+  } catch (e) {//happens when one is a string literal and the other isn't
+    return false;
+  }
+  // having the same number of owned properties (keys incorporates
+  // hasOwnProperty)
+  if (ka.length != kb.length)
+    return false;
+  //the same set of keys (although not necessarily the same order),
+  ka.sort();
+  kb.sort();
+  //~~~cheap key test
+  for (i = ka.length - 1; i >= 0; i--) {
+    if (ka[i] != kb[i])
+      return false;
+  }
+  //equivalent values for every corresponding key, and
+  //~~~possibly expensive deep test
+  for (i = ka.length - 1; i >= 0; i--) {
+    key = ka[i];
+    if (!deepEqual(a[key], b[key], opts)) return false;
+  }
+  return typeof a === typeof b;
+}
+
+
+/***/ }),
+/* 5 */
+/***/ (function(module, exports, __webpack_require__) {
+
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const system_1 = __webpack_require__(3);
 const state_1 = __webpack_require__(2);
-const input_1 = __webpack_require__(11);
+const input_1 = __webpack_require__(12);
 const THREE = __webpack_require__(1);
-const equals = __webpack_require__(18);
+const equals = __webpack_require__(4);
 const defaults = {
     turnSpeed: 1,
     forwardSpeed: 1,
@@ -588,7 +688,7 @@ exports.Controller = Controller;
 
 
 /***/ }),
-/* 5 */
+/* 6 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -596,7 +696,7 @@ exports.Controller = Controller;
 Object.defineProperty(exports, "__esModule", { value: true });
 const system_1 = __webpack_require__(3);
 const THREE = __webpack_require__(1);
-const vox_mesh_1 = __webpack_require__(14);
+const vox_mesh_1 = __webpack_require__(15);
 const throttle = (type, name, obj) => {
     obj = obj || window;
     let running = false;
@@ -751,7 +851,7 @@ exports.WebGL = WebGL;
 
 
 /***/ }),
-/* 6 */
+/* 7 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -760,7 +860,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const system_1 = __webpack_require__(3);
 const state_1 = __webpack_require__(2);
 const OIMO = __webpack_require__(21);
-const equals = __webpack_require__(18);
+const equals = __webpack_require__(4);
 const defaults = {
     mass: 1,
     size: [1, 1, 1]
@@ -779,8 +879,7 @@ class Physics extends system_1.System {
             worldscale: 1,
             random: true,
             info: false,
-            gravity: [0, 0, 0]
-            // gravity: [0,-98.0,0]
+            gravity: [0, -98.0, 0]
         });
         this.entityCache = {};
     }
@@ -836,7 +935,7 @@ exports.Physics = Physics;
 
 
 /***/ }),
-/* 7 */
+/* 8 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -977,22 +1076,22 @@ exports.setGamepadSettings = setGamepadSettings;
 
 
 /***/ }),
-/* 8 */
+/* 9 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const keyboard = __webpack_require__(9);
+const keyboard = __webpack_require__(10);
 exports.keyboard = keyboard;
-const mouse = __webpack_require__(10);
+const mouse = __webpack_require__(11);
 exports.mouse = mouse;
-const gamepad = __webpack_require__(7);
+const gamepad = __webpack_require__(8);
 exports.gamepad = gamepad;
 
 
 /***/ }),
-/* 9 */
+/* 10 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -1080,7 +1179,7 @@ document.addEventListener('keydown', (e) => {
 
 
 /***/ }),
-/* 10 */
+/* 11 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -1116,13 +1215,13 @@ document.addEventListener('mouseup', e => {
 
 
 /***/ }),
-/* 11 */
+/* 12 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const devices_1 = __webpack_require__(8);
+const devices_1 = __webpack_require__(9);
 const asset_1 = __webpack_require__(0);
 const inputActions = {};
 const fireActions = (action, value) => {
@@ -1166,16 +1265,16 @@ exports.Input = {
 
 
 /***/ }),
-/* 12 */
+/* 13 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const state_1 = __webpack_require__(2);
-const oimo_physics_1 = __webpack_require__(6);
-const webgl_1 = __webpack_require__(5);
-const controller_1 = __webpack_require__(4);
+const oimo_physics_1 = __webpack_require__(7);
+const webgl_1 = __webpack_require__(6);
+const controller_1 = __webpack_require__(5);
 const asset_1 = __webpack_require__(0);
 // State starts ticking ASAP
 const state = new state_1.State({
@@ -1196,7 +1295,7 @@ asset_1.Asset.watch('content/scene/default.toml', async (sceneData) => {
 
 
 /***/ }),
-/* 13 */
+/* 14 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -1570,7 +1669,7 @@ const md5 = MD5_hexhash;
 
 
 /***/ }),
-/* 14 */
+/* 15 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -1578,7 +1677,7 @@ const md5 = MD5_hexhash;
 Object.defineProperty(exports, "__esModule", { value: true });
 const path = __webpack_require__(22);
 const THREE = __webpack_require__(1);
-const vox_mesh_builder_1 = __webpack_require__(13);
+const vox_mesh_builder_1 = __webpack_require__(14);
 const asset_1 = __webpack_require__(0);
 const BuildVoxMesh = (voxelBin, data) => {
     const builder = new vox_mesh_builder_1.MeshBuilder(voxelBin, {
@@ -1678,7 +1777,7 @@ exports.VoxMesh = VoxMesh;
 
 
 /***/ }),
-/* 15 */
+/* 16 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -1726,7 +1825,7 @@ exports.Socket = {
 
 
 /***/ }),
-/* 16 */
+/* 17 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -2235,7 +2334,7 @@ const DefaultPalette = [
 
 
 /***/ }),
-/* 17 */
+/* 18 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -2352,106 +2451,6 @@ function fromByteArray (uint8) {
   parts.push(output)
 
   return parts.join('')
-}
-
-
-/***/ }),
-/* 18 */
-/***/ (function(module, exports, __webpack_require__) {
-
-var pSlice = Array.prototype.slice;
-var objectKeys = __webpack_require__(20);
-var isArguments = __webpack_require__(19);
-
-var deepEqual = module.exports = function (actual, expected, opts) {
-  if (!opts) opts = {};
-  // 7.1. All identical values are equivalent, as determined by ===.
-  if (actual === expected) {
-    return true;
-
-  } else if (actual instanceof Date && expected instanceof Date) {
-    return actual.getTime() === expected.getTime();
-
-  // 7.3. Other pairs that do not both pass typeof value == 'object',
-  // equivalence is determined by ==.
-  } else if (!actual || !expected || typeof actual != 'object' && typeof expected != 'object') {
-    return opts.strict ? actual === expected : actual == expected;
-
-  // 7.4. For all other Object pairs, including Array objects, equivalence is
-  // determined by having the same number of owned properties (as verified
-  // with Object.prototype.hasOwnProperty.call), the same set of keys
-  // (although not necessarily the same order), equivalent values for every
-  // corresponding key, and an identical 'prototype' property. Note: this
-  // accounts for both named and indexed properties on Arrays.
-  } else {
-    return objEquiv(actual, expected, opts);
-  }
-}
-
-function isUndefinedOrNull(value) {
-  return value === null || value === undefined;
-}
-
-function isBuffer (x) {
-  if (!x || typeof x !== 'object' || typeof x.length !== 'number') return false;
-  if (typeof x.copy !== 'function' || typeof x.slice !== 'function') {
-    return false;
-  }
-  if (x.length > 0 && typeof x[0] !== 'number') return false;
-  return true;
-}
-
-function objEquiv(a, b, opts) {
-  var i, key;
-  if (isUndefinedOrNull(a) || isUndefinedOrNull(b))
-    return false;
-  // an identical 'prototype' property.
-  if (a.prototype !== b.prototype) return false;
-  //~~~I've managed to break Object.keys through screwy arguments passing.
-  //   Converting to array solves the problem.
-  if (isArguments(a)) {
-    if (!isArguments(b)) {
-      return false;
-    }
-    a = pSlice.call(a);
-    b = pSlice.call(b);
-    return deepEqual(a, b, opts);
-  }
-  if (isBuffer(a)) {
-    if (!isBuffer(b)) {
-      return false;
-    }
-    if (a.length !== b.length) return false;
-    for (i = 0; i < a.length; i++) {
-      if (a[i] !== b[i]) return false;
-    }
-    return true;
-  }
-  try {
-    var ka = objectKeys(a),
-        kb = objectKeys(b);
-  } catch (e) {//happens when one is a string literal and the other isn't
-    return false;
-  }
-  // having the same number of owned properties (keys incorporates
-  // hasOwnProperty)
-  if (ka.length != kb.length)
-    return false;
-  //the same set of keys (although not necessarily the same order),
-  ka.sort();
-  kb.sort();
-  //~~~cheap key test
-  for (i = ka.length - 1; i >= 0; i--) {
-    if (ka[i] != kb[i])
-      return false;
-  }
-  //equivalent values for every corresponding key, and
-  //~~~possibly expensive deep test
-  for (i = ka.length - 1; i >= 0; i--) {
-    key = ka[i];
-    if (!deepEqual(a[key], b[key], opts)) return false;
-  }
-  return typeof a === typeof b;
 }
 
 

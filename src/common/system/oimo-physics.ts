@@ -33,8 +33,7 @@ export class Physics extends System {
         worldscale: 1, // scale full world
         random: true,  // randomize sample
         info: false,   // calculate statistic or not
-        gravity: [0, 0, 0]
-        // gravity: [0,-98.0,0]
+        gravity: [0, -98.0, 0]
     });
 
     private entityCache: {[key: string]: IEntity} = {};

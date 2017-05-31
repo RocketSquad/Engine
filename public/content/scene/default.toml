@@ -13,26 +13,21 @@
     cameraOffset = [5, 12, 5]
     cameraLookAt = [0, 0, 0]
 
-[has.floor]
-    is = 'content/fallback/floor.toml'
-    position = [0, 1, 0]
+[has.simple_floor]
+    is = 'content/tiles/wall.toml'
+    rotation = [90, 0, 0]
 
-[has.floor.body]
-    mass = 0
-    size = [20.0, 1.0, 15.0]
+[has.simple_floor2]
+    is = 'content/tiles/wall.toml'
+    rotation = [90, 0, 0]
+    position = [0, 0, 5]
 
-[has.floor2]
-    is = 'content/fallback/floor.toml'
-    position = [0, 1, 5]
+[has.simple_floor3]
+    is = 'content/tiles/wall.toml'
+    rotation = [90, 0, 0]
+    position = [0, 0, -5]
 
-[has.floor2.body]
-    mass = 0
-    size = [20.0, 1.0, 15.0]
 
-[has.background]
-    is = 'content/fallback/background.toml'
-    position = [0, 0, -2]
-    rotation = [0, 90, 0]
 
 [has.ambient_light.ambient]
     color = 16777215

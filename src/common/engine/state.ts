@@ -118,7 +118,7 @@ export class State {
     start() {
         this.running = true;
     }
-    
+
     stop() {
         this.running = false;
     }
