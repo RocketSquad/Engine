@@ -1,11 +1,19 @@
 {
     "compilerOptions": {
         "outDir": "./gen/",
+        "alwaysStrict": true,
         "lib": ["es2017", "dom"],
         "module": "commonjs",
+        "baseUrl": "./src",
         "target": "es2017",
         "jsx": "react",
-        "allowJs": true
+        "declaration": true,
+        "sourceMap": true,
+        "paths": {
+            "common": ["common"],
+            "client": ["client"],
+            "server": ["server"]
+        }
     },
     "include": [
         "src/**/*"

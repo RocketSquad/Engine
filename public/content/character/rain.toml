@@ -1,18 +1,19 @@
+[vox]
 default = "idle"
 size = 0.1
 jitter = 0.3
 
-[animation.idle]
-    speed = 1000
-    vox = [
-        "characters/chr_rain.vox"
-    ]
+[vox.animation.idle]
+speed = 1000
+vox = [
+    "characters/chr_rain.vox"
+]
 
-[animation.walk]    
-    speed = 100
-    vox = [
-        "characters/chr_rain.vox",
-        "characters/chr_rain.vox",
-        "characters/chr_rain.vox",
-        "characters/chr_rain.vox"
-    ]
+[vox.animation.walk]
+speed = 100
+vox = [
+    "characters/chr_rain.vox",
+    "characters/chr_rain.vox",
+    "characters/chr_rain.vox",
+    "characters/chr_rain.vox"
+]

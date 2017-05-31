@@ -3,10 +3,10 @@ size = 0.1
 jitter = 0.3
 
 [animation.idle]
-    speed = 1000
-    vox = [
-        "characters/chr_old.vox"
-    ]
+speed = 1000
+vox = [
+    "characters/chr_old.vox"
+]
 
 # [animation.walk]    
 #     speed = 100
@@ -19,10 +19,10 @@ jitter = 0.3
 #         "characters/player/chr_walkcycle-05.vox"
 #     ]
 [animation.walk]    
-    speed = 100
-    vox = [
-        "characters/chr_old.vox",
-        "characters/chr_old.vox",
-        "characters/chr_old.vox",
-        "characters/chr_old.vox"
-    ]
+speed = 100
+vox = [
+    "characters/chr_old.vox",
+    "characters/chr_old.vox",
+    "characters/chr_old.vox",
+    "characters/chr_old.vox"
+]

@@ -1,4 +1,0 @@
-is = 'content/test/inherit.toml'
-
-[has.movies]
-    rambo = 'bad'

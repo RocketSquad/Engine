@@ -1,9 +1,14 @@
-default = "idle"
-size = 0.25
-jitter = 0
+[vox]
+    default = "idle"
+    size = 0.25
+    jitter = 0
 
-[animation.idle]
+[vox.animation.idle]
     speed = 1000
     vox = [
         "tiles/wall.vox"
     ]
+
+[body]
+    mass = 0
+    size = [5.0, 1.0, 5.0]
